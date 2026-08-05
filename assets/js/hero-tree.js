@@ -55,6 +55,27 @@
     const maxDepth = W > 700 ? 9 : 8;
 
     grow(rootX, rootY, -Math.PI / 2 + rand(-0.05, 0.05), trunkLen, Math.max(8, trunkLen * 0.06), 0, maxDepth);
+
+    // The random growth can overshoot the block and get clipped flat at the
+    // top — measure the tree and rescale it around the root so it fits with
+    // a margin (leaf sway needs ~4px of headroom on top of the margin).
+    const margin = Math.max(16, H * 0.06);
+    let minY = Infinity;
+    for (const b of branches) minY = Math.min(minY, b.y1, b.y2);
+    for (const l of leaves) minY = Math.min(minY, l.y - l.size - 6);
+    if (minY < margin) {
+      const s = (rootY - margin) / (rootY - minY);
+      for (const b of branches) {
+        b.x1 = rootX + (b.x1 - rootX) * s; b.y1 = rootY + (b.y1 - rootY) * s;
+        b.x2 = rootX + (b.x2 - rootX) * s; b.y2 = rootY + (b.y2 - rootY) * s;
+        b.width *= s;
+      }
+      for (const l of leaves) {
+        l.x = rootX + (l.x - rootX) * s;
+        l.y = rootY + (l.y - rootY) * s;
+        l.size *= s;
+      }
+    }
   }
 
   function grow(x, y, angle, len, width, depth, maxDepth) {
