@@ -16,6 +16,7 @@
   --muted: #6b6560;
   --serif: "EB Garamond", Garamond, Georgia, serif;
   --measure: 46rem;
+  --radius-photo: 12px;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -193,6 +194,7 @@ h3 { font-size: 1.5rem; }
   object-fit: cover;
   width: 100%;
   border: 1px solid var(--line);
+  border-radius: var(--radius-photo);
 }
 @media (max-width: 820px) {
   .hero .container { grid-template-columns: 1fr; gap: 2.5rem; padding-top: 3.5rem; padding-bottom: 3.5rem; }
@@ -212,6 +214,7 @@ h3 { font-size: 1.5rem; }
   object-fit: cover;
   width: 100%;
   border: 1px solid var(--line);
+  border-radius: var(--radius-photo);
   margin-bottom: 1.4rem;
 }
 .card h3 { margin-bottom: .8rem; }
@@ -235,6 +238,7 @@ h3 { font-size: 1.5rem; }
   object-fit: cover;
   width: 100%;
   border: 1px solid var(--line);
+  border-radius: var(--radius-photo);
 }
 .two-col h3 { margin-bottom: .7rem; }
 .two-col .block + .block { margin-top: 2.2rem; }
@@ -287,15 +291,38 @@ h3 { font-size: 1.5rem; }
 .doc-section .doc-head { text-align: center; margin-bottom: 1.8rem; }
 .doc-section .doc-head h2 { margin-bottom: .4rem; }
 .doc-section .doc-head .doc-sub { color: var(--muted); font-style: italic; }
-.doc-embed {
+.pdf-viewer { max-width: 46rem; margin: 0 auto; }
+.pdf-viewer .pdf-page {
   width: 100%;
-  height: 70vh;
-  min-height: 480px;
+  display: block;
   border: 1px solid var(--line);
-  background: var(--cream);
+  border-radius: 6px;
+  background: #fff;
+}
+.pdf-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.3rem;
+  margin-top: 1.1rem;
+}
+.pdf-controls .btn {
+  padding: .35rem 1.05rem;
+  font-size: .85rem;
+}
+.pdf-controls .btn:disabled {
+  opacity: .35;
+  cursor: default;
+}
+.pdf-controls .btn:disabled:hover { background: transparent; color: var(--brown); }
+.pdf-count {
+  font-size: .9rem;
+  letter-spacing: .12em;
+  color: var(--muted);
+  min-width: 3.5rem;
+  text-align: center;
 }
 .doc-actions { text-align: center; margin-top: 1.5rem; }
-@media (max-width: 700px) { .doc-embed { height: 60vh; } }
 
 /* --------------------------------------------------------------------------
    Forms (Contact)
