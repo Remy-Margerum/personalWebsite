@@ -43,9 +43,11 @@ Then update `data-pages` on the matching `.pdf-viewer` if the page count changed
 
 ## Launch checklist (remaining)
 
-DNS for `remymargerum.com` (at the domain registrar): `@` A records →
+DNS for `remymargerum.com` is hosted at Cloudflare (domain registered at
+GoDaddy — leave the nameservers alone): `@` A records →
 185.199.108.153 / 185.199.109.153 / 185.199.110.153 / 185.199.111.153,
-`www` CNAME → `remy-margerum.github.io`. Once the certificate is issued,
+`www` CNAME → `remy-margerum.github.io`, all set to "DNS only" (grey cloud)
+so GitHub can issue its certificate. Once the certificate is issued,
 enable "Enforce HTTPS" in the repo's Pages settings.
 
 ## Local preview
