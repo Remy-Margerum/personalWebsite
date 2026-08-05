@@ -47,10 +47,12 @@
     leaves = [];
     falling = [];
 
-    const rootX = W * 0.5;
+    // Root toward the right of the block (clamped so it hugs the content
+    // column's right edge on very wide screens), like the original.
+    const rootX = W > 700 ? Math.min(W * 0.82, W / 2 + 430) : W * 0.9;
     const rootY = H + 10;
-    const trunkLen = H * 0.3;
-    const maxDepth = W > 420 ? 9 : 8;
+    const trunkLen = Math.min(H * 0.32, 300);
+    const maxDepth = W > 700 ? 9 : 8;
 
     grow(rootX, rootY, -Math.PI / 2 + rand(-0.05, 0.05), trunkLen, Math.max(8, trunkLen * 0.06), 0, maxDepth);
   }
