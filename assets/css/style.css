@@ -202,14 +202,7 @@ h3 { font-size: 1.5rem; }
   padding-bottom: 4.5rem;
 }
 .hero-content { max-width: 40rem; }
-.hero h1 { margin: 0 0 1.2rem; }
-.hero .sub {
-  font-size: 1.15rem;
-  font-style: italic;
-  color: var(--muted);
-  margin-bottom: 1.9rem;
-  max-width: 34rem;
-}
+.hero h1 { margin: 0 0 1.6rem; }
 @media (max-width: 700px) {
   .hero .container { min-height: 26rem; padding-top: 3.5rem; padding-bottom: 3.5rem; }
   /* soft halo so text stays readable where the tree sits behind it */
