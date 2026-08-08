@@ -904,6 +904,8 @@
     }
     scrub.disabled = false;
     wedBtn.disabled = false;
+    backBtn.disabled = false;
+    fwdBtn.disabled = false;
     Object.keys(modelBtns).forEach(function (k) {
       modelBtns[k].classList.toggle('is-active', k === id);
       modelBtns[k].classList.remove('is-loading');
@@ -1028,9 +1030,18 @@
   }
   scrub.addEventListener('input', applyHour);
 
-  /* jump back to beer-can time: next Wednesday 5 PM (clamped to the
-     active model's horizon) */
+  /* step an hour either way, or jump back to beer-can time: next
+     Wednesday 5 PM (all clamped to the active model's horizon) */
   var wedBtn = document.getElementById('sail-wed');
+  var backBtn = document.getElementById('sail-back');
+  var fwdBtn = document.getElementById('sail-fwd');
+  function stepHour(d) {
+    if (!wx.hours.length) return;
+    scrub.value = Math.min(Math.max(scrub.valueAsNumber + d, +scrub.min), +scrub.max);
+    applyHour();
+  }
+  backBtn.addEventListener('click', function () { stepHour(-1); });
+  fwdBtn.addEventListener('click', function () { stepHour(1); });
   wedBtn.addEventListener('click', function () {
     if (wx.wedIdx == null || wx.wedIdx < 0) return;
     scrub.value = Math.min(Math.max(wx.wedIdx, +scrub.min), +scrub.max);

@@ -61,7 +61,11 @@
         <div class="sail-control sail-control--time">
           <div class="sail-timehead">
             <label for="sail-time">Forecast hour &mdash; <span id="sail-time-label">loading&hellip;</span></label>
-            <button type="button" class="sail-wed" id="sail-wed" title="Next Wednesday &middot; 5 PM" disabled>&#8635; WW</button>
+            <div class="sail-timebtns">
+              <button type="button" class="sail-wed" id="sail-back" title="Back one hour" disabled>&minus;</button>
+              <button type="button" class="sail-wed" id="sail-fwd" title="Forward one hour" disabled>+</button>
+              <button type="button" class="sail-wed" id="sail-wed" title="Next Wednesday &middot; 5 PM" disabled>&#8635; WW</button>
+            </div>
           </div>
           <input type="range" id="sail-time" min="0" max="48" value="0" step="1" autocomplete="off" disabled>
         </div>

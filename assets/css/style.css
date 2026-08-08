@@ -464,6 +464,8 @@ h3 { font-size: 1.5rem; }
   margin-bottom: .45rem;
 }
 .sail-timehead label { margin-bottom: 0; }
+.sail-timebtns { display: flex; gap: .3rem; flex: 0 0 auto; }
+#sail-back, #sail-fwd { min-width: 1.6rem; }
 .sail-wed {
   font-family: var(--serif);
   font-size: .64rem;
