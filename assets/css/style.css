@@ -676,6 +676,11 @@ h3 { font-size: 1.5rem; }
   font-style: italic;
   color: var(--muted);
   letter-spacing: .05em;
+  /* paper halo to match the chart labels */
+  text-shadow:
+    1px 1px 0 var(--paper), -1px -1px 0 var(--paper),
+    1px -1px 0 var(--paper), -1px 1px 0 var(--paper),
+    0 0 3px var(--paper), 0 0 3px var(--paper), 0 0 3px var(--paper);
 }
 
 .sail-conditions {
