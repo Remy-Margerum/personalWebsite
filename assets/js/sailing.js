@@ -203,6 +203,7 @@
   var obsW = pOf(OBS);
   var obs = null;
   var gObs = el('g', { 'class': 'ch-obs' }, gMarks);
+  var obsPulse = el('circle', { cx: obsW[0], cy: obsW[1], r: 6.5, 'class': 'ch-obs-pulse' }, gObs);
   var obsRing = el('circle', { cx: obsW[0], cy: obsW[1], r: 6.5, 'class': 'ch-obs-ring' }, gObs);
   var obsDot = el('circle', { cx: obsW[0], cy: obsW[1], r: 2.2, 'class': 'ch-obs-dot' }, gObs);
   var obsHit = el('circle', { cx: obsW[0], cy: obsW[1], r: 13, 'class': 'ch-hit' }, gObs);
@@ -288,6 +289,7 @@
       l.style.strokeDasharray = sd;
     });
     obsRing.setAttribute('r', 6.5 * z);
+    obsPulse.setAttribute('r', 6.5 * z);
     obsDot.setAttribute('r', 2.2 * z);
     obsHit.setAttribute('r', 13 * z);
     placeStars(z);

@@ -596,6 +596,21 @@ h3 { font-size: 1.5rem; }
 /* live harbor observation — green = observed, brown = forecast */
 .ch-obs-ring { fill: none; stroke: #3e7a55; stroke-width: 1.5; vector-effect: non-scaling-stroke; opacity: .85; }
 .ch-obs-dot { fill: #3e7a55; }
+.ch-obs-pulse {
+  fill: none;
+  stroke: #3e7a55;
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: obspulse 2.6s ease-out infinite;
+}
+@keyframes obspulse {
+  0% { transform: scale(1); opacity: .55; }
+  70% { transform: scale(2.4); opacity: 0; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .ch-obs-pulse { animation: none; opacity: 0; } }
 .sail-live {
   position: absolute;
   top: .9rem;
