@@ -49,6 +49,8 @@
   var gRoute = el('g', { 'class': 'ch-route' }, svg);
   var gMarkWind = el('g', { 'class': 'ch-markwind' }, svg);
   var gMarks = el('g', { 'class': 'ch-marks' }, svg);
+  /* labels that hide when the view is too wide for them to read */
+  var lodPoi = [], lodPlace = [];
 
   function pathFrom(lines, close) {
     var d = '';
@@ -135,15 +137,23 @@
   }
   /* labels sit over water or open land, placed by hand */
   geoLabel('S A N T A   B A R B A R A', -119.703, 34.4275, 'ch-city');
-  geoLabel('Shoreline Park', -119.7095, 34.3982, 'ch-place', 0);
-  geoLabel('Stearns Wharf', -119.6851, 34.4099, 'ch-place', 47);
-  geoLabel('Harbor', -119.6868, 34.4040, 'ch-place-sm', 0);
-  geoLabel('Yacht Club', -119.6950, 34.4019, 'ch-poi', 0);
-  geoLabel('Shoreline Café', -119.6984, 34.4004, 'ch-poi', 0);
-  geoLabel('S.B. City College', -119.7002, 34.4062, 'ch-poi', 0);
+  lodPlace.push(geoLabel('Shoreline Park', -119.7095, 34.3982, 'ch-place', 0));
+  lodPlace.push(geoLabel('Stearns Wharf', -119.6832, 34.4070, 'ch-place', 0));
+  lodPlace.push(geoLabel('Harbor', -119.6888, 34.4040, 'ch-place-sm', 0));
+  lodPoi.push(geoLabel('Yacht Club', -119.6941, 34.4022, 'ch-poi', 0));
+  lodPoi.push(geoLabel('Shoreline Café', -119.6979, 34.4012, 'ch-poi', 0));
+  lodPoi.push(geoLabel('S.B. City College', -119.6966, 34.4062, 'ch-poi', 0));
+  lodPoi.push(kelp);
 
   /* ---------- marks ---------- */
   var INSHORE = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'K', 'M', 'X'];
+  /* label offsets in screen px (scaled per zoom); platforms staggered so
+     the row of labels never overlaps at wide zooms */
+  var LBL_OFF = {
+    G: [9, -7], X: [9, 16],
+    PltfC: [7, 16], PltfB: [7, -10], PltfA: [7, 16],
+    PltfHillhse: [7, -10], PltfHenry: [7, 16]
+  };
   var markEls = {};
   Object.keys(MARKS).forEach(function (id) {
     var m = MARKS[id];
@@ -156,15 +166,16 @@
       el('circle', { cx: w[0], cy: w[1], r: 4.6, 'class': 'ch-buoy' }, g);
       el('circle', { cx: w[0], cy: w[1], r: 1.4, 'class': 'ch-buoy-dot' }, g);
     }
+    var off = LBL_OFF[id] || [9, 4];
     var lbl = el('text', {
-      x: w[0] + 8, y: w[1] + (id === 'G' ? -7 : 4), 'class': 'ch-marklbl'
+      x: w[0] + off[0], y: w[1] + off[1], 'class': 'ch-marklbl'
     }, g);
     lbl.textContent = m.name;
     var hit = el('circle', { cx: w[0], cy: w[1], r: 14, 'class': 'ch-hit' }, g);
     hit.addEventListener('mouseenter', function () { showTip(m, w); });
     hit.addEventListener('mouseleave', hideTip);
     hit.addEventListener('click', function (ev) { showTip(m, w); ev.stopPropagation(); });
-    markEls[id] = g;
+    markEls[id] = { g: g, lbl: lbl, w: w, off: off };
   });
   svg.addEventListener('click', hideTip);
 
@@ -248,11 +259,21 @@
     Array.prototype.forEach.call(gMarks.querySelectorAll('.ch-hit'), function (c) {
       c.setAttribute('r', 14 * z);
     });
+    Object.keys(markEls).forEach(function (id) {
+      var e = markEls[id];
+      e.lbl.setAttribute('x', e.w[0] + e.off[0] * z);
+      e.lbl.setAttribute('y', e.w[1] + e.off[1] * z);
+    });
     var sd = (7 * z) + ' ' + (5 * z);
     Array.prototype.forEach.call(gWater.querySelectorAll('.ch-startline,.ch-gateline'), function (l) {
       l.style.strokeDasharray = sd;
     });
     placeStars(z);
+    /* level of detail: shore labels only when close enough to read them */
+    var poiV = z <= 2.8 ? '' : 'none';
+    var placeV = z <= 3.6 ? '' : 'none';
+    lodPoi.forEach(function (t) { t.style.display = poiV; });
+    lodPlace.forEach(function (t) { t.style.display = placeV; });
   }
   function worldToScreen(w) {
     var cw = frame.clientWidth, chh = frame.clientHeight;
@@ -413,7 +434,7 @@
     markWindEls = {};
     gateLine.style.display = 'none';
     Object.keys(markEls).forEach(function (id) {
-      markEls[id].classList.remove('ch-mark--active');
+      markEls[id].g.classList.remove('ch-mark--active');
     });
   }
 
@@ -421,7 +442,9 @@
     clearRoute();
     if (!course) {
       animateView(fitBBox(inshoreBBox()), 700);
-      buildMarkWindArrows(INSHORE, zoomOf(fitBBox(inshoreBBox())));
+      /* G and F skipped: the strip already reads wind at the line */
+      buildMarkWindArrows(INSHORE.filter(function (id) { return id !== 'G' && id !== 'F'; }),
+        zoomOf(fitBBox(inshoreBBox())));
       updateMarkWinds();
       return;
     }
@@ -458,7 +481,7 @@
     wps.forEach(function (w) {
       if (w.kind !== 'mark') return;
       if (courseMarks.indexOf(w.id) < 0) courseMarks.push(w.id);
-      if (markEls[w.id]) markEls[w.id].classList.add('ch-mark--active');
+      if (markEls[w.id]) markEls[w.id].g.classList.add('ch-mark--active');
     });
 
     buildMarkWindArrows(courseMarks, z);
@@ -532,6 +555,8 @@
         'L' + (len / 2) + ' 0L' + (len / 2 - s2 * 1.4) + ' ' + (s2 * 0.8) + 'Z');
       e.txt.textContent = Math.round(ws);
       e.txt.setAttribute('y', e.w[1] + 30 * z);
+      /* knot numbers only when close enough to breathe */
+      e.txt.style.display = z > 2.5 ? 'none' : '';
     });
   }
 
@@ -685,8 +710,9 @@
   function seedParticle(p) {
     p.x = vb.x + Math.random() * vb.w;
     p.y = vb.y + Math.random() * vb.h;
-    p.life = 0;
     p.ttl = 3 + Math.random() * 5;
+    /* static rendering draws one frame only — pre-age so it isn't blank */
+    p.life = reduceMotion ? 0.4 + Math.random() * p.ttl * 0.5 : 0;
   }
   for (var pi = 0; pi < PCOUNT; pi++) particles.push({ x: 0, y: 0, life: 0, ttl: 0 });
 

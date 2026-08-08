@@ -474,6 +474,14 @@ h3 { font-size: 1.5rem; }
 .sail-frame > svg { z-index: 1; }
 
 /* chart ink */
+/* every chart label carries a paper halo so linework never garbles it */
+.ch-marklbl, .ch-poi, .ch-place, .ch-place-sm, .ch-note, .ch-startlbl,
+.ch-city, .ch-mwind-txt {
+  stroke: var(--paper);
+  stroke-width: .28em;
+  paint-order: stroke;
+  stroke-linejoin: round;
+}
 .ch-landfill { fill: var(--cream); }
 .ch-coast { fill: none; stroke: var(--ink); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
 .ch-islet { fill: var(--cream); stroke: var(--ink); stroke-width: 1; vector-effect: non-scaling-stroke; }
@@ -595,8 +603,11 @@ h3 { font-size: 1.5rem; }
 
 @media (max-width: 700px) {
   .sail-frame { height: clamp(360px, 72vw, 520px); }
-  .sail-rose { transform: scale(.82); transform-origin: top right; }
+  .sail-rose { transform: scale(.78); transform-origin: top right; }
   .sail-controls { gap: 1rem; }
+  .sail-table { font-size: .9rem; }
+  .sail-table th, .sail-table td { padding-left: .35rem; padding-right: .35rem; }
+  .sail-conditions { font-size: .95rem; }
 }
 
 /* Utility */
