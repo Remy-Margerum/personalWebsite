@@ -1011,8 +1011,8 @@
     if (gRef && gRef.at[i] != null) parts.push('<span>air <b>' + Math.round(gRef.at[i]) + '°F</b></span>');
     if (rep && rep.ws >= 1) {
       parts.push('<span>' + (favored
-        ? '★ <b>' + (favored.end === 'G' ? 'Boat (G)' : 'Pin (F)') + '</b> favored by ' + favored.m + ' m'
-        : 'line square to wind') + '</span>');
+        ? '★ <b>' + (favored.end === 'G' ? 'Boat (G)' : 'Pin (F)') + '</b> by ' + favored.m + ' m'
+        : 'line predicted square to wind') + '</span>');
     }
     condEl.innerHTML = parts.join('<span class="sail-dot">·</span>');
 
@@ -1046,7 +1046,7 @@
         liveSub.textContent = 'gusts ' + Math.round(obs.g) + ' kn · as of ' + obs.t;
         var lf = favoredEnd(obs.s, obs.d);
         liveFav.innerHTML = lf
-          ? '★ ' + (lf.end === 'G' ? 'Boat' : 'Pin') + ' favored by ' + lf.m + ' m'
+          ? '★ ' + (lf.end === 'G' ? 'Boat' : 'Pin') + ' by ' + lf.m + ' m'
           : 'line square';
         liveEl.style.display = '';
       })
