@@ -198,6 +198,22 @@
       (fPt[1] + 10 * z) + ') scale(' + (5.5 * z) + ')');
   }
 
+  /* live observation station: NOAA CO-OPS 9411340, at the harbor */
+  var OBS = { name: 'NOAA 9411340', lat: 34.4046, lon: -119.6925 };
+  var obsW = pOf(OBS);
+  var obs = null;
+  var gObs = el('g', { 'class': 'ch-obs' }, gMarks);
+  var obsRing = el('circle', { cx: obsW[0], cy: obsW[1], r: 6.5, 'class': 'ch-obs-ring' }, gObs);
+  var obsDot = el('circle', { cx: obsW[0], cy: obsW[1], r: 2.2, 'class': 'ch-obs-dot' }, gObs);
+  var obsHit = el('circle', { cx: obsW[0], cy: obsW[1], r: 13, 'class': 'ch-hit' }, gObs);
+  obsHit.addEventListener('mouseenter', function () {
+    tooltip.innerHTML = '<strong>' + OBS.name + '</strong> live harbor wind' +
+      (obs ? ' · ' + Math.round(obs.s) + ' kn from ' + compass16(obs.d) : '');
+    tooltip.style.display = 'block';
+    placeTipAt(obsW);
+  });
+  obsHit.addEventListener('mouseleave', hideTip);
+
   function fmtCoord(m) {
     function dmf(v, isLat) {
       var a = Math.abs(v), d = Math.floor(a), mn = (a - d) * 60;
@@ -206,13 +222,16 @@
     }
     return dmf(m.lat, true) + ' · ' + dmf(m.lon, false);
   }
-  function showTip(m, w) {
+  function placeTipAt(w) {
     var s = worldToScreen(w);
-    tooltip.innerHTML = '<strong>' + m.name + '</strong> ' + fmtCoord(m);
-    tooltip.style.display = 'block';
     var tw = tooltip.offsetWidth;
     tooltip.style.left = Math.max(6, Math.min(frame.clientWidth - tw - 6, s[0] - tw / 2)) + 'px';
     tooltip.style.top = Math.max(6, s[1] - 40) + 'px';
+  }
+  function showTip(m, w) {
+    tooltip.innerHTML = '<strong>' + m.name + '</strong> ' + fmtCoord(m);
+    tooltip.style.display = 'block';
+    placeTipAt(w);
   }
   function hideTip() { tooltip.style.display = 'none'; }
 
@@ -268,6 +287,9 @@
     Array.prototype.forEach.call(gWater.querySelectorAll('.ch-startline,.ch-gateline'), function (l) {
       l.style.strokeDasharray = sd;
     });
+    obsRing.setAttribute('r', 6.5 * z);
+    obsDot.setAttribute('r', 2.2 * z);
+    obsHit.setAttribute('r', 13 * z);
     placeStars(z);
     /* level of detail: shore labels only when close enough to read them */
     var poiV = z <= 2.8 ? '' : 'none';
@@ -811,43 +833,107 @@
       String(t.getUTCDate()).padStart(2, '0') + 'T17:00';
   }
 
-  function loadForecast() {
-    /* one multi-point call: forecast at every mark */
-    wx.sampleIds = Object.keys(MARKS);
+  /* ---------- forecast models: one picker, everything re-keys ---------- */
+  var MODELS = [
+    { id: 'nbm', om: 'ncep_nbm_conus', label: 'NBM', note: '2.5 km' },
+    { id: 'hrrr', om: 'gfs_hrrr', label: 'HRRR', note: '3 km · 48 h' },
+    { id: 'ecmwf', om: 'ecmwf_ifs025', label: 'ECMWF', note: '25 km' },
+    { id: 'gfs', om: 'gfs_seamless', label: 'GFS', note: '13 km' }
+  ];
+  var modelCache = {};
+  var activeModel = 'nbm';
+  var modelBtns = {};
+
+  function modelVar(h, name, om) {
+    return h[name] || h[name + '_' + om] || null;
+  }
+  function loadWindModel(m) {
+    if (modelCache[m.id]) return Promise.resolve(modelCache[m.id]);
     var lats = wx.sampleIds.map(function (id) { return MARKS[id].lat; }).join(',');
     var lons = wx.sampleIds.map(function (id) { return MARKS[id].lon; }).join(',');
-    var fUrl = 'https://api.open-meteo.com/v1/forecast?latitude=' + lats + '&longitude=' + lons +
-      '&timezone=America%2FLos_Angeles&forecast_days=8' +
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lats + '&longitude=' + lons +
+      '&timezone=America%2FLos_Angeles&forecast_days=8&models=' + m.om +
       '&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m' +
       '&wind_speed_unit=kn&temperature_unit=fahrenheit';
+    return fetch(url).then(function (r) { return r.json(); }).then(function (res) {
+      var fArr = Array.isArray(res) ? res : [res];
+      var samples = {};
+      wx.sampleIds.forEach(function (id, k) {
+        var h = (fArr[k] || fArr[0]).hourly;
+        samples[id] = {
+          world: pOf(MARKS[id]),
+          ws: modelVar(h, 'wind_speed_10m', m.om) || [],
+          wd: modelVar(h, 'wind_direction_10m', m.om) || [],
+          wg: modelVar(h, 'wind_gusts_10m', m.om) || [],
+          at: modelVar(h, 'temperature_2m', m.om) || [],
+          cu: 0, cv: 0, tu: 0, tv: 0
+        };
+      });
+      var probe = samples[wx.sampleIds[0]].ws;
+      var maxIdx = probe.length - 1;
+      while (maxIdx > 0 && probe[maxIdx] == null) maxIdx--;
+      modelCache[m.id] = { samples: samples, times: fArr[0].hourly.time, maxIdx: maxIdx };
+      return modelCache[m.id];
+    });
+  }
+  function activateModel(id, first) {
+    var c = modelCache[id];
+    if (!c) return;
+    activeModel = id;
+    wx.samples = c.samples;
+    scrub.min = wx.nowIdx;
+    scrub.max = Math.min(wx.hours.length - 1, c.maxIdx);
+    if (first) {
+      scrub.value = wx.wedIdx >= wx.nowIdx && wx.wedIdx <= +scrub.max ? wx.wedIdx : scrub.max;
+    } else if (+scrub.value > +scrub.max) {
+      scrub.value = scrub.max;
+    }
+    scrub.disabled = false;
+    Object.keys(modelBtns).forEach(function (k) {
+      modelBtns[k].classList.toggle('is-active', k === id);
+      modelBtns[k].classList.remove('is-loading');
+    });
+    applyHour();
+  }
+  function setModel(id) {
+    if (id === activeModel) return;
+    var m = MODELS.filter(function (x) { return x.id === id; })[0];
+    if (!m || !wx.hours.length) return;
+    if (modelCache[id]) { activateModel(id); return; }
+    modelBtns[id].classList.add('is-loading');
+    loadWindModel(m).then(function () {
+      activateModel(id);
+    }).catch(function () {
+      modelBtns[id].classList.remove('is-loading');
+    });
+  }
+  var modelWrap = document.getElementById('sail-models');
+  MODELS.forEach(function (m) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'sail-model' + (m.id === activeModel ? ' is-active' : '');
+    b.innerHTML = m.label + ' <span>' + m.note + '</span>';
+    b.addEventListener('click', function () { setModel(m.id); });
+    modelWrap.appendChild(b);
+    modelBtns[m.id] = b;
+  });
+
+  function loadForecast() {
+    wx.sampleIds = Object.keys(MARKS);
     var mUrl = 'https://marine-api.open-meteo.com/v1/marine?latitude=34.392&longitude=-119.687' +
       '&timezone=America%2FLos_Angeles&forecast_days=8' +
       '&hourly=wave_height,wave_period,wave_direction,sea_surface_temperature' +
       '&length_unit=imperial&temperature_unit=fahrenheit&cell_selection=sea';
     return Promise.all([
-      fetch(fUrl).then(function (r) { return r.json(); }),
+      loadWindModel(MODELS[0]),
       fetch(mUrl).then(function (r) { return r.json(); }).catch(function () { return null; })
     ]).then(function (res) {
-      var fArr = Array.isArray(res[0]) ? res[0] : [res[0]];
-      var m = res[1];
+      var wind = res[0], m = res[1];
       var mh = m && m.hourly;
       var mFt = !m || /ft/.test((m.hourly_units || {}).wave_height || 'ft');
       var mF = !m || /F/.test((m.hourly_units || {}).sea_surface_temperature || 'F');
 
-      var times = fArr[0].hourly.time;
-      wx.samples = {};
-      wx.sampleIds.forEach(function (id, k) {
-        var h = (fArr[k] || fArr[0]).hourly;
-        wx.samples[id] = {
-          world: pOf(MARKS[id]),
-          ws: h.wind_speed_10m, wd: h.wind_direction_10m, wg: h.wind_gusts_10m,
-          at: h.temperature_2m,
-          cu: 0, cv: 0, tu: 0, tv: 0
-        };
-      });
-
-      var startW = pOf(startMid);
-      wx.hours = times.map(function (t, i) {
+      wx.hours = wind.times.map(function (t, i) {
         var mi = mh ? mh.time.indexOf(t) : -1;
         var wh = mi >= 0 ? mh.wave_height[mi] : null;
         var sst = mi >= 0 ? mh.sea_surface_temperature[mi] : null;
@@ -859,18 +945,13 @@
           sst: sst == null ? null : (mF ? sst : sst * 9 / 5 + 32)
         };
       });
-      wx.startW = startW;
+      wx.startW = pOf(startMid);
 
       var now = sbNow();
-      var nowIdx = wx.hours.findIndex(function (h) { return h.iso >= now.iso; });
-      if (nowIdx < 0) nowIdx = 0;
-      var wedIso = nextWedIso(now);
-      var wedIdx = wx.hours.findIndex(function (h) { return h.iso === wedIso; });
-      scrub.min = nowIdx;
-      scrub.max = wx.hours.length - 1;
-      scrub.value = wedIdx >= nowIdx ? wedIdx : nowIdx;
-      scrub.disabled = false;
-      applyHour();
+      wx.nowIdx = wx.hours.findIndex(function (h) { return h.iso >= now.iso; });
+      if (wx.nowIdx < 0) wx.nowIdx = 0;
+      wx.wedIdx = wx.hours.findIndex(function (h) { return h.iso === nextWedIso(now); });
+      activateModel('nbm', true);
     }).catch(function () {
       condEl.innerHTML = '<span class="muted">Live forecast unavailable right now — ' +
         'the chart still works; conditions will return when the connection does.</span>';
@@ -935,6 +1016,29 @@
     paintLegWinds();
   }
   scrub.addEventListener('input', applyHour);
+
+  /* ---------- live harbor wind (updates every 6 minutes) ---------- */
+  var liveEl = document.getElementById('sail-live');
+  var liveMain = document.getElementById('sail-live-main');
+  var liveSub = document.getElementById('sail-live-sub');
+  function loadObs() {
+    if (document.hidden) return;
+    fetch('https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?' +
+      'product=wind&station=9411340&date=latest&units=english&time_zone=lst_ldt&format=json')
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        var d = j.data && j.data[0];
+        if (!d || d.s === '') return;
+        obs = { s: +d.s, d: +d.d, g: +d.g, t: (d.t || '').slice(11, 16) };
+        liveMain.innerHTML = '<b>' + Math.round(obs.s) + ' kn</b> from ' + compass16(obs.d) +
+          ' (' + String(Math.round(obs.d)).padStart(3, '0') + '°)';
+        liveSub.textContent = 'gusts ' + Math.round(obs.g) + ' kn · as of ' + obs.t;
+        liveEl.style.display = '';
+      })
+      .catch(function () { /* panel simply stays hidden */ });
+  }
+  loadObs();
+  setInterval(loadObs, 360000);
 
   /* ---------- boot ---------- */
   function boot() {

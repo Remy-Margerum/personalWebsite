@@ -455,6 +455,33 @@ h3 { font-size: 1.5rem; }
   height: 2.15rem;
   cursor: pointer;
 }
+.sail-control--model { flex: 0 0 auto; }
+.sail-models { display: flex; gap: .4rem; }
+.sail-model {
+  font-family: var(--serif);
+  font-size: .8rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 1px;
+  padding: .34rem .55rem .3rem;
+  cursor: pointer;
+  line-height: 1.2;
+  text-align: center;
+  transition: border-color .15s ease, color .15s ease, opacity .15s ease;
+}
+.sail-model span {
+  display: block;
+  font-size: .6rem;
+  letter-spacing: .03em;
+  text-transform: none;
+  color: var(--muted);
+}
+.sail-model:hover { border-color: var(--brown-2); }
+.sail-model.is-active { border-color: var(--brown); color: var(--brown); box-shadow: inset 0 0 0 1px var(--brown); }
+.sail-model.is-loading { opacity: .5; cursor: progress; }
 
 .sail-frame {
   position: relative;
@@ -539,6 +566,45 @@ h3 { font-size: 1.5rem; }
 .rose-unit { font-size: 9px; fill: var(--muted); }
 .rose-dirlbl { fill: var(--muted); font-size: 9px; text-anchor: middle; letter-spacing: .14em; }
 
+/* live harbor observation — green = observed, brown = forecast */
+.ch-obs-ring { fill: none; stroke: #3e7a55; stroke-width: 1.5; vector-effect: non-scaling-stroke; opacity: .85; }
+.ch-obs-dot { fill: #3e7a55; }
+.sail-live {
+  position: absolute;
+  top: .9rem;
+  left: .9rem;
+  z-index: 2;
+  text-align: center;
+  font-size: .82rem;
+  color: var(--ink);
+  background: rgba(255, 255, 255, .78);
+  border: 1px solid var(--line);
+  border-radius: 1px;
+  padding: .3rem .55rem .35rem;
+  max-width: 160px;
+}
+.sail-live-head {
+  font-size: .6rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: #3e7a55;
+  margin-bottom: .1rem;
+}
+.sail-live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3e7a55;
+  margin-right: .3rem;
+  vertical-align: 1px;
+  animation: livepulse 2.4s ease-in-out infinite;
+}
+@keyframes livepulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .sail-live-dot { animation: none; } }
+.sail-live-main b { color: var(--black); }
+.sail-live-sub { color: var(--muted); font-size: .72rem; }
+
 .sail-tooltip {
   display: none;
   position: absolute;
@@ -608,6 +674,9 @@ h3 { font-size: 1.5rem; }
   .sail-table { font-size: .9rem; }
   .sail-table th, .sail-table td { padding-left: .35rem; padding-right: .35rem; }
   .sail-conditions { font-size: .95rem; }
+  .sail-live { top: .7rem; left: .7rem; font-size: .74rem; max-width: 140px; }
+  .sail-live-sub { font-size: .66rem; }
+  .sail-models { flex-wrap: wrap; }
 }
 
 /* Utility */

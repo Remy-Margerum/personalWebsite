@@ -55,6 +55,10 @@
             <option value="">&mdash; marks only &mdash;</option>
           </select>
         </div>
+        <div class="sail-control sail-control--model">
+          <label id="sail-models-label">Model</label>
+          <div class="sail-models" id="sail-models" role="group" aria-labelledby="sail-models-label"></div>
+        </div>
         <div class="sail-control sail-control--time">
           <label for="sail-time">Forecast hour &mdash; <span id="sail-time-label">loading&hellip;</span></label>
           <input type="range" id="sail-time" min="0" max="48" value="0" step="1" autocomplete="off" disabled>
@@ -81,6 +85,11 @@
             <text x="42" y="70" class="rose-dirlbl" id="rose-dir"></text>
           </svg>
         </div>
+        <div class="sail-live" id="sail-live" style="display:none">
+          <div class="sail-live-head"><span class="sail-live-dot"></span>live &middot; harbor</div>
+          <div class="sail-live-main" id="sail-live-main"></div>
+          <div class="sail-live-sub" id="sail-live-sub"></div>
+        </div>
         <div class="sail-tooltip" id="sail-tooltip"></div>
         <span class="sail-credit">SBYC course chart &middot; effective 4/16/2025</span>
       </div>
@@ -91,7 +100,7 @@
         <p class="sail-summary" id="sail-summary"></p>
         <div id="sail-legs"></div>
         <p class="sail-fine muted">Start, finish, and gate legs run to the middle of the G&ndash;F and F&ndash;X lines. Bearings magnetic (var 12.5&deg;E); published distances from the club chart. The forecast is sampled at every mark &mdash; the small arrows on the chart and the wind column show the local wind for the hour you pick above, and the &#9733; sits on whichever end of the start line that wind favors. Hover a buoy for its coordinates.</p>
-        <p class="sail-fine muted">Harbor Patrol VHF 16/12 &middot; SBYC Race Committee VHF 71 &middot; Forecast by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> &middot; Shoreline &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</p>
+        <p class="sail-fine muted">Harbor Patrol VHF 16/12 &middot; SBYC Race Committee VHF 71 &middot; Forecast by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (models: NOAA NBM &middot; HRRR &middot; GFS, and <a href="https://www.ecmwf.int/en/forecasts/datasets/open-data" target="_blank" rel="noopener">ECMWF IFS open data</a>, CC&nbsp;BY&nbsp;4.0) &middot; Live harbor wind from NOAA CO-OPS station 9411340 &middot; Shoreline &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</p>
       </div>
 
       <noscript><p class="center muted">The live chart needs JavaScript &mdash; without it, here are the essentials: racing runs off Leadbetter Beach on the Santa Barbara Yacht Club courses; start and finish on the G&ndash;F line off the harbor entrance.</p></noscript>
