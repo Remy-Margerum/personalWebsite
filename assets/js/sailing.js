@@ -295,85 +295,88 @@
     return Math.abs(((a - b + 540) % 360) - 180);
   }
 
-  /* waypoints with rounding-side offsets */
   function routeWaypoints(course) {
-    var wps = course.seq.split('-').map(resolveToken).filter(Boolean);
-    return wps;
+    return course.seq.split('-').map(resolveToken).filter(Boolean);
   }
-  function offsetVertices(wps, z) {
-    var rad = 10 * z;
-    return wps.map(function (w, i) {
-      if (w.kind !== 'mark' || i === 0 || i === wps.length - 1) return w.pt.slice();
-      var a = wps[i - 1].pt, b = wps[i + 1].pt, c = w.pt;
-      var u = norm([c[0] - a[0], c[1] - a[1]]);
-      var v = norm([b[0] - c[0], b[1] - c[1]]);
-      var wdir = norm([u[0] + v[0], u[1] + v[1]]);
-      var right = [-wdir[1], wdir[0]];
-      var side = w.dir === 'p' ? 1 : -1; /* mark to port => fleet passes on its right */
-      return [c[0] + right[0] * rad * side, c[1] + right[1] * rad * side];
+
+  /* route that actually rounds the marks: each leg runs tangent to a small
+     circle at the mark, then arcs around it in the rounding direction
+     (port = counterclockwise, starboard = clockwise). Repeat visits round
+     a touch wider, which also keeps multi-lap courses legible. */
+  function sideNormal(dir, w) {
+    /* mark to port => boat passes on the mark's right-of-travel side */
+    return dir === 'p' ? [-w[1], w[0]] : [w[1], -w[0]];
+  }
+  function buildRoutePath(wps, z) {
+    var n = wps.length;
+    var f = function (p) { return p[0].toFixed(1) + ' ' + p[1].toFixed(1); };
+    var visits = {};
+    var R = wps.map(function (w) {
+      var v = (visits[w.key] = (visits[w.key] || 0) + 1) - 1;
+      w.visit = v;
+      return w.kind === 'mark' ? (11 + v * 7) * z : 0;
     });
-  }
-
-  /* legs with lap lanes: repeated segments spread into parallel lanes */
-  function routeLegs(wps, verts, z) {
-    var laneGap = 7.5 * z;
-    var counts = {}, seen = {};
-    for (var i = 1; i < wps.length; i++) {
-      var key = [wps[i - 1].key, wps[i].key].sort().join('|');
-      counts[key] = (counts[key] || 0) + 1;
-    }
-    var legs = [];
-    for (var j = 1; j < wps.length; j++) {
-      var k2 = [wps[j - 1].key, wps[j].key].sort().join('|');
-      var idx = (seen[k2] = (seen[k2] || 0) + 1) - 1;
-      var m = counts[k2];
-      var a = verts[j - 1].slice(), b = verts[j].slice();
-      var off = [0, 0];
-      if (m > 1) {
-        /* fixed perpendicular of the canonical direction so lanes are parallel */
-        var canon = wps[j - 1].key < wps[j].key ? norm([b[0] - a[0], b[1] - a[1]])
-                                               : norm([a[0] - b[0], a[1] - b[1]]);
-        var perp = [-canon[1], canon[0]];
-        var lane = (idx - (m - 1) / 2) * laneGap;
-        off = [perp[0] * lane, perp[1] * lane];
+    /* interior line/gate waypoints: nudge repeat passes apart */
+    var pts = wps.map(function (w, i) {
+      var c = w.pt.slice();
+      if (w.kind !== 'mark' && i > 0 && i < n - 1 && w.visit > 0) {
+        var wd = norm([wps[i + 1].pt[0] - wps[i - 1].pt[0], wps[i + 1].pt[1] - wps[i - 1].pt[1]]);
+        c[0] += -wd[1] * 6 * z * w.visit;
+        c[1] += wd[0] * 6 * z * w.visit;
       }
-      legs.push({
-        a: [a[0] + off[0], a[1] + off[1]],
-        b: [b[0] + off[0], b[1] + off[1]],
-        vA: verts[j - 1], vB: verts[j]
+      return c;
+    });
+    var d = '', mids = [];
+    var cur = pts[0];
+    d += 'M' + f(cur);
+    for (var i = 1; i < n; i++) {
+      var w = norm([pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]]);
+      var segEnd = wps[i].kind === 'mark'
+        ? (function () {
+            var nm = sideNormal(wps[i].dir, w);
+            return [pts[i][0] + nm[0] * R[i], pts[i][1] + nm[1] * R[i]];
+          })()
+        : pts[i].slice();
+      var segLen = Math.hypot(segEnd[0] - cur[0], segEnd[1] - cur[1]);
+      mids.push({
+        mid: [(cur[0] + segEnd[0]) / 2, (cur[1] + segEnd[1]) / 2],
+        ang: Math.atan2(segEnd[1] - cur[1], segEnd[0] - cur[0]) * 180 / Math.PI,
+        len: segLen
       });
-    }
-    return legs;
-  }
-
-  /* rounded path: legs trimmed at the corners, joined with quadratics
-     through the (rounding-offset) mark vertex */
-  function routePath(legs, z) {
-    var r = 16 * z;
-    var d = '';
-    for (var i = 0; i < legs.length; i++) {
-      var g = legs[i];
-      var dir = norm([g.b[0] - g.a[0], g.b[1] - g.a[1]]);
-      var len = Math.hypot(g.b[0] - g.a[0], g.b[1] - g.a[1]);
-      var tA = i === 0 ? 0 : Math.min(r, len * 0.35);
-      var tB = i === legs.length - 1 ? 0 : Math.min(r, len * 0.35);
-      var pA = [g.a[0] + dir[0] * tA, g.a[1] + dir[1] * tA];
-      var pB = [g.b[0] - dir[0] * tB, g.b[1] - dir[1] * tB];
-      if (i === 0) d += 'M' + pA[0].toFixed(1) + ' ' + pA[1].toFixed(1);
-      else {
-        /* corner control point: the mark vertex, nudged midway between lanes */
-        var prev = legs[i - 1];
-        var c = [(prev.vB[0] + g.vA[0]) / 2 + (prev.b[0] - prev.vB[0] + g.a[0] - g.vA[0]) / 2,
-                 (prev.vB[1] + g.vA[1]) / 2 + (prev.b[1] - prev.vB[1] + g.a[1] - g.vA[1]) / 2];
-        d += 'Q' + c[0].toFixed(1) + ' ' + c[1].toFixed(1) + ' ' +
-             pA[0].toFixed(1) + ' ' + pA[1].toFixed(1);
+      if (wps[i].kind === 'mark' && i < n - 1) {
+        d += 'L' + f(segEnd);
+        /* arc from this leg's tangent point to the next leg's */
+        var w2 = norm([pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]]);
+        var nm2 = sideNormal(wps[i].dir, w2);
+        var X = [pts[i][0] + nm2[0] * R[i], pts[i][1] + nm2[1] * R[i]];
+        var aE = Math.atan2(segEnd[1] - pts[i][1], segEnd[0] - pts[i][0]) * 180 / Math.PI;
+        var aX = Math.atan2(X[1] - pts[i][1], X[0] - pts[i][0]) * 180 / Math.PI;
+        var sweep = wps[i].dir === 's' ? 1 : 0;
+        var delta = sweep ? ((aX - aE) % 360 + 360) % 360 : ((aE - aX) % 360 + 360) % 360;
+        if (delta > 300) {
+          /* nearly-collinear pass-through: no loop, just carry on past */
+          d += 'L' + f(X);
+        } else {
+          d += 'A' + R[i].toFixed(1) + ' ' + R[i].toFixed(1) + ' 0 ' +
+            (delta > 180 ? 1 : 0) + ' ' + sweep + ' ' + f(X);
+        }
+        cur = X;
+      } else if (wps[i].kind !== 'mark' && i < n - 1) {
+        /* gate / line waypoint: soft rounded corner through the midpoint */
+        var t = Math.min(14 * z, segLen * 0.35);
+        var pB = [segEnd[0] - w[0] * t, segEnd[1] - w[1] * t];
+        var w2b = norm([pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]]);
+        var nLen = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
+        var t2 = Math.min(14 * z, nLen * 0.35);
+        var qE = [segEnd[0] + w2b[0] * t2, segEnd[1] + w2b[1] * t2];
+        d += 'L' + f(pB) + 'Q' + f(segEnd) + ' ' + f(qE);
+        cur = qE;
+      } else {
+        d += 'L' + f(segEnd);
+        cur = segEnd;
       }
-      d += 'L' + pB[0].toFixed(1) + ' ' + pB[1].toFixed(1);
-      g.mid = [(pA[0] + pB[0]) / 2, (pA[1] + pB[1]) / 2];
-      g.ang = Math.atan2(dir[1], dir[0]) * 180 / Math.PI;
-      g.len = len;
     }
-    return d;
+    return { d: d, mids: mids };
   }
 
   var routeState = { flow: null, raf: null, offset: 0, dash: 20 };
@@ -404,9 +407,8 @@
     var fitPts = wps.map(function (w) { return w.pt; }).concat([pOf(MARKS.G), pOf(MARKS.F)]);
     var target = fitBBox(bboxOf(fitPts));
     var z = zoomOf(target);
-    var verts = offsetVertices(wps, z);
-    var legs = routeLegs(wps, verts, z);
-    var d = routePath(legs, z);
+    var route = buildRoutePath(wps, z);
+    var d = route.d;
 
     if (course.seq.indexOf('Gt') >= 0) gateLine.style.display = '';
 
@@ -414,7 +416,7 @@
     var flow = el('path', { d: d, 'class': 'ch-flow' }, gRoute);
 
     /* leg direction arrows at midpoints */
-    legs.forEach(function (g) {
+    route.mids.forEach(function (g) {
       if (g.len < 30 * z) return;
       var s = 5 * z;
       el('path', {
@@ -424,28 +426,12 @@
       }, gRoute);
     });
 
-    /* rounding arrows: CCW for port, CW for starboard */
+    /* the route itself wraps each mark the way it is rounded */
     var courseMarks = [];
     wps.forEach(function (w) {
       if (w.kind !== 'mark') return;
       if (courseMarks.indexOf(w.id) < 0) courseMarks.push(w.id);
       if (markEls[w.id]) markEls[w.id].classList.add('ch-mark--active');
-      var rr = 13 * z, c = pOf(MARKS[w.id]);
-      var ccw = w.dir === 'p';
-      var sweep = ccw ? 0 : 1;
-      var a0 = ccw ? 40 : 140, a1 = ccw ? -160 : 340;
-      var p0 = arcPt(c, rr, a0), p1 = arcPt(c, rr, a1);
-      el('path', {
-        d: 'M' + p0[0] + ' ' + p0[1] + 'A' + rr + ' ' + rr + ' 0 1 ' + sweep + ' ' + p1[0] + ' ' + p1[1],
-        'class': 'ch-round'
-      }, gRoute);
-      var tangent = a1 + (ccw ? -90 : 90);
-      var s2 = 3.6 * z;
-      el('path', {
-        d: 'M' + (-s2) + ' ' + (-s2 * 0.8) + 'L' + (s2 * 1.1) + ' 0L' + (-s2) + ' ' + (s2 * 0.8) + 'Z',
-        'class': 'ch-round-arrow',
-        transform: 'translate(' + p1[0] + ' ' + p1[1] + ') rotate(' + tangent + ')'
-      }, gRoute);
     });
 
     buildMarkWindArrows(courseMarks, z);
@@ -469,10 +455,6 @@
     } else {
       flow.style.strokeDasharray = routeState.dash + ' ' + routeState.dash * 0.9;
     }
-  }
-  function arcPt(c, r, deg) {
-    var a = deg * Math.PI / 180;
-    return [(c[0] + r * Math.cos(a)).toFixed(1), (c[1] + r * Math.sin(a)).toFixed(1)];
   }
   function startFlow(z) {
     var last = performance.now();
