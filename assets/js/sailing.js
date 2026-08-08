@@ -788,14 +788,18 @@
     if (!reduceMotion) requestAnimationFrame(windTick);
   }
 
-  /* which end of the G–F line sits farther upwind for this wind */
+  /* which end of the G–F line sits farther upwind, and by how much:
+     the line vector projected onto the upwind direction, in meters */
   function favoredEnd(ws, wd) {
     if (ws == null || ws < 1) return null;
     var uw = [Math.sin(wd * Math.PI / 180), -Math.cos(wd * Math.PI / 180)];
     var diff = (gPt[0] - fPt[0]) * uw[0] + (gPt[1] - fPt[1]) * uw[1];
     var lineLen = Math.hypot(gPt[0] - fPt[0], gPt[1] - fPt[1]);
     if (Math.abs(diff) <= lineLen * 0.035) return null;
-    return diff > 0 ? 'G' : 'F';
+    return {
+      end: diff > 0 ? 'G' : 'F',
+      m: Math.round(Math.abs(diff) * NM_PER_WORLD * 1852)
+    };
   }
 
   /* ---------- wind rose ---------- */
@@ -989,8 +993,8 @@
 
     /* favored end: the end of the G–F line that sits farther upwind */
     var favored = rep ? favoredEnd(rep.ws, rep.wd) : null;
-    starG.style.display = favored === 'G' ? '' : 'none';
-    starF.style.display = favored === 'F' ? '' : 'none';
+    starG.style.display = favored && favored.end === 'G' ? '' : 'none';
+    starF.style.display = favored && favored.end === 'F' ? '' : 'none';
 
     var parts = [];
     if (rep) {
@@ -1007,7 +1011,7 @@
     if (gRef && gRef.at[i] != null) parts.push('<span>air <b>' + Math.round(gRef.at[i]) + '°F</b></span>');
     if (rep && rep.ws >= 1) {
       parts.push('<span>' + (favored
-        ? '★ <b>' + (favored === 'G' ? 'Boat (G)' : 'Pin (F)') + '</b> favored'
+        ? '★ <b>' + (favored.end === 'G' ? 'Boat (G)' : 'Pin (F)') + '</b> favored by ' + favored.m + ' m'
         : 'line square to wind') + '</span>');
     }
     condEl.innerHTML = parts.join('<span class="sail-dot">·</span>');
@@ -1042,7 +1046,7 @@
         liveSub.textContent = 'gusts ' + Math.round(obs.g) + ' kn · as of ' + obs.t;
         var lf = favoredEnd(obs.s, obs.d);
         liveFav.innerHTML = lf
-          ? '★ ' + (lf === 'G' ? 'Boat' : 'Pin') + ' favored'
+          ? '★ ' + (lf.end === 'G' ? 'Boat' : 'Pin') + ' favored by ' + lf.m + ' m'
           : 'line square';
         liveEl.style.display = '';
       })
