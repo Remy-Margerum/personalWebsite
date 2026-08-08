@@ -486,7 +486,6 @@ h3 { font-size: 1.5rem; }
 .ch-trail { fill: none; stroke: #ddd6ca; stroke-width: 1; stroke-dasharray: 2 3; vector-effect: non-scaling-stroke; }
 .ch-road { fill: none; stroke: #c9c0b0; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
 .ch-roadmin { fill: none; stroke: #d8d1c3; stroke-width: 1; vector-effect: non-scaling-stroke; }
-.ch-lot { fill: #f4efe6; stroke: #ddd6ca; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .ch-dock { fill: #f3ede4; stroke: #9b9284; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .ch-bldg { fill: #f1ebe0; stroke: #c4bbab; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .ch-bldg--poi { fill: #ece4d5; stroke: #8a8378; }

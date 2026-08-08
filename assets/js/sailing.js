@@ -113,9 +113,6 @@
   (D.geo.roadsMain || []).forEach(function (r) {
     el('path', { d: pathFrom([r]), 'class': 'ch-road' }, gLand);
   });
-  (D.geo.parking || []).forEach(function (pk) {
-    el('path', { d: pathFrom([pk], true), 'class': 'ch-lot' }, gLand);
-  });
   (D.geo.buildings || []).forEach(function (bd, i) {
     el('path', {
       d: pathFrom([bd], true),
