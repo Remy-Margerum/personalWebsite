@@ -456,6 +456,30 @@ h3 { font-size: 1.5rem; }
   cursor: pointer;
 }
 .sail-control--model { flex: 0 0 auto; }
+.sail-timehead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .8rem;
+  margin-bottom: .45rem;
+}
+.sail-timehead label { margin-bottom: 0; }
+.sail-wed {
+  font-family: var(--serif);
+  font-size: .68rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--brown);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 1px;
+  padding: .15rem .5rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color .15s ease, color .15s ease;
+}
+.sail-wed:hover { border-color: var(--brown); color: var(--brown-2); }
+.sail-wed:disabled { opacity: .4; cursor: default; }
 .sail-models { display: flex; gap: .4rem; }
 .sail-model {
   font-family: var(--serif);

@@ -903,6 +903,7 @@
       scrub.value = scrub.max;
     }
     scrub.disabled = false;
+    wedBtn.disabled = false;
     Object.keys(modelBtns).forEach(function (k) {
       modelBtns[k].classList.toggle('is-active', k === id);
       modelBtns[k].classList.remove('is-loading');
@@ -1026,6 +1027,15 @@
     paintLegWinds();
   }
   scrub.addEventListener('input', applyHour);
+
+  /* jump back to beer-can time: next Wednesday 5 PM (clamped to the
+     active model's horizon) */
+  var wedBtn = document.getElementById('sail-wed');
+  wedBtn.addEventListener('click', function () {
+    if (wx.wedIdx == null || wx.wedIdx < 0) return;
+    scrub.value = Math.min(Math.max(wx.wedIdx, +scrub.min), +scrub.max);
+    applyHour();
+  });
 
   /* ---------- live harbor wind (updates every 6 minutes) ---------- */
   var liveEl = document.getElementById('sail-live');
