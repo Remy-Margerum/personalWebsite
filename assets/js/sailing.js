@@ -527,10 +527,17 @@
   var lastT = performance.now();
   function windTick(now) {
     var dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
-    var k = 1 - Math.exp(-dt / 1.0);
-    wind.u += (wind.tu - wind.u) * k;
-    wind.v += (wind.tv - wind.v) * k;
-    wind.spd += (wind.tspd - wind.spd) * k;
+    if (reduceMotion) {
+      /* static rendering: the wind field is forecast data, so it still
+         paints — one scattered frame per forecast hour, no animation */
+      wind.u = wind.tu; wind.v = wind.tv; wind.spd = wind.tspd;
+      dt = 0.2;
+    } else {
+      var k = 1 - Math.exp(-dt / 1.0);
+      wind.u += (wind.tu - wind.u) * k;
+      wind.v += (wind.tv - wind.v) * k;
+      wind.spd += (wind.tspd - wind.spd) * k;
+    }
 
     var cw = frame.clientWidth, chh = frame.clientHeight;
     ctx.clearRect(0, 0, cw, chh);
@@ -660,6 +667,7 @@
       roseSpd.textContent = Math.round(h.ws);
       roseDir.textContent = compass16(h.wd);
     }
+    if (reduceMotion) windTick(performance.now());
     paintPoS();
   }
   scrub.addEventListener('input', applyHour);
