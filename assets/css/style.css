@@ -418,6 +418,35 @@ h3 { font-size: 1.5rem; }
 /* --------------------------------------------------------------------------
    Sailing — SBYC course chart
    -------------------------------------------------------------------------- */
+/* the Kernville question */
+.sail-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: rgba(250, 249, 247, .93);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+.sail-gate[hidden] { display: none; }
+.sail-gate-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 1px;
+  padding: 2.2rem 2.4rem;
+  max-width: 26rem;
+  text-align: center;
+}
+.sail-gate-card p { margin-bottom: 1.5rem; font-size: 1.15rem; }
+.sail-blackout {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #000;
+}
+.sail-blackout[hidden] { display: none; }
+
 .sail-header { margin-bottom: 2.2rem; }
 .sail-header .byline { max-width: 38rem; margin: 0 auto; }
 

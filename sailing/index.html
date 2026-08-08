@@ -20,6 +20,37 @@
 </head>
 <body>
 
+<div class="sail-gate" id="sail-gate" hidden>
+  <div class="sail-gate-card" role="dialog" aria-modal="true" aria-labelledby="sail-gate-q">
+    <p id="sail-gate-q">Are you currently located in Kernville?</p>
+    <div class="btn-row">
+      <button class="btn btn--ghost" id="gate-yes" type="button">Yes</button>
+      <button class="btn" id="gate-no" type="button">No</button>
+    </div>
+  </div>
+</div>
+<div class="sail-blackout" id="sail-blackout" hidden></div>
+<script>
+  (function () {
+    var gate = document.getElementById('sail-gate');
+    var blackout = document.getElementById('sail-blackout');
+    var state = null;
+    try { state = sessionStorage.getItem('kernville'); } catch (e) {}
+    if (state === 'yes') { blackout.hidden = false; return; }
+    if (state === 'no') return;
+    setTimeout(function () { gate.hidden = false; }, 5000);
+    document.getElementById('gate-no').addEventListener('click', function () {
+      try { sessionStorage.setItem('kernville', 'no'); } catch (e) {}
+      gate.hidden = true;
+    });
+    document.getElementById('gate-yes').addEventListener('click', function () {
+      try { sessionStorage.setItem('kernville', 'yes'); } catch (e) {}
+      gate.hidden = true;
+      blackout.hidden = false;
+    });
+  })();
+</script>
+
 <header class="site-header">
   <div class="container">
     <a class="wordmark" href="/">Remy Margerum</a>
