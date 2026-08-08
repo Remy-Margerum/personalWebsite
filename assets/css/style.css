@@ -466,16 +466,17 @@ h3 { font-size: 1.5rem; }
 .sail-timehead label { margin-bottom: 0; }
 .sail-wed {
   font-family: var(--serif);
-  font-size: .68rem;
-  letter-spacing: .1em;
+  font-size: .64rem;
+  letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--brown);
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 1px;
-  padding: .15rem .5rem;
+  padding: .08rem .38rem;
   cursor: pointer;
   white-space: nowrap;
+  flex: 0 0 auto;
   transition: border-color .15s ease, color .15s ease;
 }
 .sail-wed:hover { border-color: var(--brown); color: var(--brown-2); }
