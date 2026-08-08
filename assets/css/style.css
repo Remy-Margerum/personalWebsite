@@ -604,6 +604,13 @@ h3 { font-size: 1.5rem; }
 @media (prefers-reduced-motion: reduce) { .sail-live-dot { animation: none; } }
 .sail-live-main b { color: var(--black); }
 .sail-live-sub { color: var(--muted); font-size: .72rem; }
+.sail-live-fav {
+  margin-top: .1rem;
+  font-size: .72rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #3e7a55;
+}
 
 .sail-tooltip {
   display: none;

@@ -788,6 +788,16 @@
     if (!reduceMotion) requestAnimationFrame(windTick);
   }
 
+  /* which end of the G–F line sits farther upwind for this wind */
+  function favoredEnd(ws, wd) {
+    if (ws == null || ws < 1) return null;
+    var uw = [Math.sin(wd * Math.PI / 180), -Math.cos(wd * Math.PI / 180)];
+    var diff = (gPt[0] - fPt[0]) * uw[0] + (gPt[1] - fPt[1]) * uw[1];
+    var lineLen = Math.hypot(gPt[0] - fPt[0], gPt[1] - fPt[1]);
+    if (Math.abs(diff) <= lineLen * 0.035) return null;
+    return diff > 0 ? 'G' : 'F';
+  }
+
   /* ---------- wind rose ---------- */
   var roseNeedle = document.getElementById('rose-needle');
   var roseSpd = document.getElementById('rose-spd');
@@ -978,13 +988,7 @@
     var gRef = wx.samples.G;
 
     /* favored end: the end of the G–F line that sits farther upwind */
-    var favored = null;
-    if (rep && rep.ws >= 1) {
-      var uw = [Math.sin(rep.wd * Math.PI / 180), -Math.cos(rep.wd * Math.PI / 180)];
-      var diff = (gPt[0] - fPt[0]) * uw[0] + (gPt[1] - fPt[1]) * uw[1];
-      var lineLen = Math.hypot(gPt[0] - fPt[0], gPt[1] - fPt[1]);
-      if (Math.abs(diff) > lineLen * 0.035) favored = diff > 0 ? 'G' : 'F';
-    }
+    var favored = rep ? favoredEnd(rep.ws, rep.wd) : null;
     starG.style.display = favored === 'G' ? '' : 'none';
     starF.style.display = favored === 'F' ? '' : 'none';
 
@@ -1002,7 +1006,9 @@
     if (h.sst != null) parts.push('<span>water <b>' + Math.round(h.sst) + '°F</b></span>');
     if (gRef && gRef.at[i] != null) parts.push('<span>air <b>' + Math.round(gRef.at[i]) + '°F</b></span>');
     if (rep && rep.ws >= 1) {
-      parts.push('<span>' + (favored ? '★ <b>' + favored + '</b> end favored' : 'line square to wind') + '</span>');
+      parts.push('<span>' + (favored
+        ? '★ <b>' + (favored === 'G' ? 'Boat (G)' : 'Pin (F)') + '</b> favored'
+        : 'line square to wind') + '</span>');
     }
     condEl.innerHTML = parts.join('<span class="sail-dot">·</span>');
 
@@ -1021,6 +1027,7 @@
   var liveEl = document.getElementById('sail-live');
   var liveMain = document.getElementById('sail-live-main');
   var liveSub = document.getElementById('sail-live-sub');
+  var liveFav = document.getElementById('sail-live-fav');
   function loadObs() {
     if (document.hidden) return;
     fetch('https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?' +
@@ -1033,6 +1040,10 @@
         liveMain.innerHTML = '<b>' + Math.round(obs.s) + ' kn</b> from ' + compass16(obs.d) +
           ' (' + String(Math.round(obs.d)).padStart(3, '0') + '°)';
         liveSub.textContent = 'gusts ' + Math.round(obs.g) + ' kn · as of ' + obs.t;
+        var lf = favoredEnd(obs.s, obs.d);
+        liveFav.innerHTML = lf
+          ? '★ ' + (lf === 'G' ? 'Boat' : 'Pin') + ' favored'
+          : 'line square';
         liveEl.style.display = '';
       })
       .catch(function () { /* panel simply stays hidden */ });
