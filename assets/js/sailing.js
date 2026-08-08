@@ -77,6 +77,9 @@
   D.geo.islets.forEach(function (i) {
     el('path', { d: pathFrom([i], true), 'class': 'ch-islet' }, gLand);
   });
+  (D.geo.docks || []).forEach(function (dk) {
+    el('path', { d: pathFrom([dk], true), 'class': 'ch-dock' }, gStruct);
+  });
   el('path', { d: pathFrom(D.geo.wharf, true), 'class': 'ch-wharf' }, gStruct);
   el('path', { d: pathFrom(D.geo.breakwater), 'class': 'ch-breakwater' }, gStruct);
 
@@ -100,9 +103,18 @@
   }, gWater);
   kelp.textContent = 'kelp';
 
-  /* shoreside detail: park trails, then buildings (SBYC + café first) */
+  /* shoreside detail: trails, roads, parking, then buildings (SBYC + café first) */
   (D.geo.trails || []).forEach(function (t) {
     el('path', { d: pathFrom([t]), 'class': 'ch-trail' }, gLand);
+  });
+  (D.geo.roads || []).forEach(function (r) {
+    el('path', { d: pathFrom([r]), 'class': 'ch-roadmin' }, gLand);
+  });
+  (D.geo.roadsMain || []).forEach(function (r) {
+    el('path', { d: pathFrom([r]), 'class': 'ch-road' }, gLand);
+  });
+  (D.geo.parking || []).forEach(function (pk) {
+    el('path', { d: pathFrom([pk], true), 'class': 'ch-lot' }, gLand);
   });
   (D.geo.buildings || []).forEach(function (bd, i) {
     el('path', {
@@ -125,7 +137,7 @@
   geoLabel('Leadbetter Beach', -119.7085, 34.4001, 'ch-place', -7);
   geoLabel('Stearns Wharf', -119.6851, 34.4099, 'ch-place', 47);
   geoLabel('Harbor', -119.6893, 34.4058, 'ch-place-sm', 0);
-  geoLabel('S.B. Yacht Club', -119.6928, 34.4024, 'ch-poi', 0);
+  geoLabel('Yacht Club', -119.6928, 34.4024, 'ch-poi', 0);
   geoLabel('Shoreline Café', -119.6979, 34.4016, 'ch-poi', 0);
   geoLabel('S.B. City College', -119.6988, 34.4056, 'ch-poi', 0);
 
