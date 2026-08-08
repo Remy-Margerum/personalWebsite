@@ -482,9 +482,12 @@ h3 { font-size: 1.5rem; }
 .ch-startline { stroke: var(--brown); stroke-width: 1.3; vector-effect: non-scaling-stroke; }
 .ch-gateline { stroke: var(--brown-2); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: .8; }
 .ch-startlbl { fill: var(--brown); font-style: italic; letter-spacing: .08em; }
-.ch-sound { fill: #b9b2a8; font-size: 1em; }
-.ch-sound-sub { font-size: .7em; fill: #b9b2a8; }
 .ch-note { fill: #b0a89d; font-style: italic; font-size: .92em; letter-spacing: .04em; }
+.ch-trail { fill: none; stroke: #ddd6ca; stroke-width: 1; stroke-dasharray: 2 3; vector-effect: non-scaling-stroke; }
+.ch-bldg { fill: #f1ebe0; stroke: #c4bbab; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.ch-bldg--poi { fill: #ece4d5; stroke: #8a8378; }
+.ch-poi { fill: #a99f92; font-size: 10.5px; font-style: italic; letter-spacing: .08em; text-anchor: middle; }
+.ch-star path { fill: var(--brown-2); }
 .ch-city { fill: #d8d1c5; font-size: 34px; letter-spacing: .5em; text-anchor: middle; }
 .ch-place { fill: #a99f92; font-size: 13px; font-style: italic; letter-spacing: .12em; text-anchor: middle; }
 .ch-place-sm { fill: #a99f92; font-size: 10px; font-style: italic; letter-spacing: .1em; text-anchor: middle; }

@@ -95,34 +95,21 @@
     'class': 'ch-gateline', style: 'display:none'
   }, gWater);
 
-  /* decorative soundings (fathoms, from the NOAA base chart) */
-  var SOUNDINGS = [
-    ['G', 0.0022, -0.0013, '5', '4'], ['F', 0.0019, -0.0009, '6', '5'],
-    ['B', -0.0042, 0.0009, '7', '2'], ['B', 0.0010, -0.0019, '8', '4'],
-    ['C', 0.0016, -0.0011, '8', '4'], ['M', -0.0021, 0.0011, '10', '2'],
-    ['M', 0.0006, -0.0031, '11', ''], ['H', -0.0032, 0.0013, '10', '5'],
-    ['H', 0.0021, -0.0042, '12', ''], ['D', 0.0011, -0.0013, '6', '3'],
-    ['K', 0.0009, -0.0013, '6', '5'], ['A', 0.0026, -0.0006, '9', '']
-  ];
-  SOUNDINGS.forEach(function (s) {
-    var m = MARKS[s[0]];
-    var w = P(m.lon + s[1], m.lat + s[2]);
-    var t = el('text', { x: w[0], y: w[1], 'class': 'ch-sound' }, gWater);
-    t.appendChild(document.createTextNode(s[3]));
-    if (s[4]) {
-      var sub = el('tspan', { dy: 3, 'class': 'ch-sound-sub' }, t);
-      sub.textContent = s[4];
-    }
-  });
-  var wreck = el('text', {
-    x: P(MARKS.A.lon - 0.0012, 0)[0], y: P(0, MARKS.A.lat - 0.0013)[1],
-    'class': 'ch-note'
-  }, gWater);
-  wreck.textContent = 'subm. structure';
   var kelp = el('text', {
     x: P(-119.708, 0)[0], y: P(0, 34.3939)[1], 'class': 'ch-note'
   }, gWater);
   kelp.textContent = 'kelp';
+
+  /* shoreside detail: park trails, then buildings (SBYC + café first) */
+  (D.geo.trails || []).forEach(function (t) {
+    el('path', { d: pathFrom([t]), 'class': 'ch-trail' }, gLand);
+  });
+  (D.geo.buildings || []).forEach(function (bd, i) {
+    el('path', {
+      d: pathFrom([bd], true),
+      'class': 'ch-bldg' + (i < 2 ? ' ch-bldg--poi' : '')
+    }, gLand);
+  });
 
   /* geographic labels (scale with the chart, like printed text) */
   function geoLabel(text, lon, lat, cls, rotate) {
@@ -138,6 +125,9 @@
   geoLabel('Leadbetter Beach', -119.7085, 34.4001, 'ch-place', -7);
   geoLabel('Stearns Wharf', -119.6851, 34.4099, 'ch-place', 47);
   geoLabel('Harbor', -119.6893, 34.4058, 'ch-place-sm', 0);
+  geoLabel('S.B. Yacht Club', -119.6928, 34.4024, 'ch-poi', 0);
+  geoLabel('Shoreline Café', -119.6979, 34.4016, 'ch-poi', 0);
+  geoLabel('S.B. City College', -119.6988, 34.4056, 'ch-poi', 0);
 
   /* ---------- marks ---------- */
   var INSHORE = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'K', 'M', 'X'];
@@ -164,6 +154,25 @@
     markEls[id] = g;
   });
   svg.addEventListener('click', hideTip);
+
+  /* favored-end star: shown on G or F when the forecast wind favors that
+     end of the start line */
+  var STAR_D = 'M0 -1L0.224 -0.309L0.951 -0.309L0.363 0.118L0.588 0.809' +
+    'L0 0.382L-0.588 0.809L-0.363 0.118L-0.951 -0.309L-0.224 -0.309Z';
+  function mkStar() {
+    var g = el('g', { 'class': 'ch-star', style: 'display:none' }, gMarks);
+    el('path', { d: STAR_D }, g);
+    var t = el('title', {}, g);
+    t.textContent = 'Favored end for the forecast wind';
+    return g;
+  }
+  var starG = mkStar(), starF = mkStar();
+  function placeStars(z) {
+    starG.setAttribute('transform', 'translate(' + (gPt[0] - 12 * z) + ' ' +
+      (gPt[1] - 10 * z) + ') scale(' + (5.5 * z) + ')');
+    starF.setAttribute('transform', 'translate(' + (fPt[0] - 12 * z) + ' ' +
+      (fPt[1] + 10 * z) + ') scale(' + (5.5 * z) + ')');
+  }
 
   function fmtCoord(m) {
     function dmf(v, isLat) {
@@ -230,6 +239,7 @@
     Array.prototype.forEach.call(gWater.querySelectorAll('.ch-startline,.ch-gateline'), function (l) {
       l.style.strokeDasharray = sd;
     });
+    placeStars(z);
   }
   function worldToScreen(w) {
     var cw = frame.clientWidth, chh = frame.clientHeight;
@@ -840,6 +850,18 @@
     /* conditions at the start line (IDW of the mark samples) */
     var rep = windAtHour(i, wx.startW);
     var gRef = wx.samples.G;
+
+    /* favored end: the end of the G–F line that sits farther upwind */
+    var favored = null;
+    if (rep && rep.ws >= 1) {
+      var uw = [Math.sin(rep.wd * Math.PI / 180), -Math.cos(rep.wd * Math.PI / 180)];
+      var diff = (gPt[0] - fPt[0]) * uw[0] + (gPt[1] - fPt[1]) * uw[1];
+      var lineLen = Math.hypot(gPt[0] - fPt[0], gPt[1] - fPt[1]);
+      if (Math.abs(diff) > lineLen * 0.035) favored = diff > 0 ? 'G' : 'F';
+    }
+    starG.style.display = favored === 'G' ? '' : 'none';
+    starF.style.display = favored === 'F' ? '' : 'none';
+
     var parts = [];
     if (rep) {
       parts.push('<span><b>' + Math.round(rep.ws) + ' kn</b> from ' + compass16(rep.wd) +
@@ -853,6 +875,9 @@
     }
     if (h.sst != null) parts.push('<span>water <b>' + Math.round(h.sst) + '°F</b></span>');
     if (gRef && gRef.at[i] != null) parts.push('<span>air <b>' + Math.round(gRef.at[i]) + '°F</b></span>');
+    if (rep && rep.ws >= 1) {
+      parts.push('<span>' + (favored ? '★ <b>' + favored + '</b> end favored' : 'line square to wind') + '</span>');
+    }
     condEl.innerHTML = parts.join('<span class="sail-dot">·</span>');
 
     if (rep && roseNeedle) {
