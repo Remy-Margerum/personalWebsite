@@ -498,8 +498,11 @@ h3 { font-size: 1.5rem; }
 .ch-mark--wp .ch-marklbl { fill: var(--muted); font-style: italic; }
 .ch-hit { fill: transparent; stroke: none; cursor: pointer; }
 
-.ch-guide { fill: none; stroke: var(--brown); stroke-width: 2.4; opacity: .28; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.ch-flow { fill: none; stroke: var(--brown); stroke-width: 1.7; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.ch-guide { fill: none; stroke: var(--brown); stroke-width: 2.4; opacity: .28; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.ch-flow { fill: none; stroke: var(--brown); stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.ch-mwind-line { stroke: var(--muted); stroke-width: 1.2; opacity: .6; vector-effect: non-scaling-stroke; }
+.ch-mwind-head { fill: var(--muted); opacity: .6; }
+.ch-mwind-txt { fill: var(--muted); opacity: .85; }
 .ch-legarrow { fill: var(--brown); opacity: .85; }
 .ch-round { fill: none; stroke: var(--brown-2); stroke-width: 1.1; opacity: .75; vector-effect: non-scaling-stroke; }
 .ch-round-arrow { fill: var(--brown-2); opacity: .85; }
@@ -580,7 +583,7 @@ h3 { font-size: 1.5rem; }
 }
 .sail-table td:first-child { color: var(--muted); width: 2.2rem; }
 .sail-table td:nth-child(3), .sail-table td:nth-child(4) { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.sail-pos { font-size: .82rem; letter-spacing: .1em; text-transform: uppercase; color: var(--brown); white-space: nowrap; }
+.sail-windcell { white-space: nowrap; }
 .sail-fine { font-size: .9rem; margin-top: 1.3rem; text-align: center; }
 .sail-fine + .sail-fine { margin-top: .5rem; }
 
@@ -588,7 +591,6 @@ h3 { font-size: 1.5rem; }
   .sail-frame { height: clamp(360px, 72vw, 520px); }
   .sail-rose { transform: scale(.82); transform-origin: top right; }
   .sail-controls { gap: 1rem; }
-  .sail-table th:nth-child(4), .sail-table td:nth-child(4) { display: none; }
 }
 
 /* Utility */

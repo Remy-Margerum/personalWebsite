@@ -12,12 +12,16 @@ academic-work/          Three papers with paginated page-image viewers
 resume/                 Resume viewer + download
 contact-me/             Contact form (Formspree → remymargerum@gmail.com)
 vietnam/                "Northern Vietnam by Motorcycle" article
+sailing/                Live SBYC course chart with per-mark wind forecast
+cycling/                SB100 training feed
 privacy-policy/         Privacy policy
 lottery/                CA Lottery EV — offline stub (not in nav; app lives in the
                         separate ca-scratchers repo, currently disabled)
 404.html                Not-found page (GitHub Pages picks this up automatically)
 assets/css/style.css    All styling; design tokens in :root
 assets/js/pdf-viewer.js Pager logic for the document viewers
+assets/js/sailing.js    Sailing chart engine (projection, routes, wind field)
+assets/js/sailing-data.js SBYC marks/courses + shoreline geometry (generated)
 assets/img/             Photos + favicon; assets/img/pdf/<slug>/ holds pre-rendered
                         page images (150 DPI JPGs, generated with PyMuPDF)
 assets/files/           Resume + academic PDFs (download links)
@@ -57,3 +61,27 @@ Any static server works, e.g.:
 ```
 npx serve .
 ```
+
+## Data, licenses & attribution
+
+This is a personal, non-commercial site. Content (text, photos) is
+© LBIRI, LLC — all rights reserved. The sailing-chart code
+(`assets/js/sailing.js`) is released under the MIT License: permission is
+hereby granted, free of charge, to any person obtaining a copy of that
+file, to deal in it without restriction, subject to the standard MIT
+conditions and warranty disclaimer (https://opensource.org/license/mit).
+
+The sailing page combines three third-party data sources, each credited
+on the page itself as their licenses require:
+
+- **Shoreline / breakwater / wharf geometry** — extracted from
+  [OpenStreetMap](https://www.openstreetmap.org/copyright), © OpenStreetMap
+  contributors, licensed under the [ODbL](https://opendatacommons.org/licenses/odbl/).
+  The derived, simplified geometry in `sailing-data.js` remains subject to ODbL.
+- **Weather & marine forecast** — [Open-Meteo](https://open-meteo.com/),
+  data licensed CC-BY 4.0; the free API tier used here is for
+  non-commercial use, which this site is.
+- **Race marks & courses** — transcribed from the Santa Barbara Yacht Club
+  course chart (effective 4/16/2025); coordinates and course sequences are
+  factual data, credited to SBYC on the page. Not affiliated with or
+  endorsed by SBYC.
