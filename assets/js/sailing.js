@@ -659,25 +659,74 @@
       }
       rows += '<tr><td>' + (n + 1) + '</td><td>' + name +
         '</td><td>' + leg.nm.toFixed(2) + '</td><td>' + String(bm).padStart(3, '0') +
-        '°M</td><td class="sail-windcell" data-leg="' + n + '">—</td></tr>';
+        '°M</td><td class="sail-windcell" data-leg="' + n + '">—</td>' +
+        '<td class="sail-eta" data-leg="' + n + '">—</td></tr>';
     });
     summaryEl.innerHTML = '<strong>' + course.id + '</strong> · ' +
       course.seq.split('-').join(' – ') + ' · <strong>' + course.nm +
       ' nm</strong> published <span class="muted">(' + total.toFixed(2) + ' computed)</span>';
     legsEl.innerHTML = '<table class="sail-table"><thead><tr><th>leg</th><th></th>' +
-      '<th>nm</th><th>brg</th><th>wind</th></tr></thead><tbody>' +
+      '<th>nm</th><th>brg</th><th>wind</th><th>est. time</th></tr></thead><tbody>' +
       rows + '</tbody></table>';
     paintLegWinds();
   }
+
+  /* ---------- ETA model: ~20 ft boat, 5 kn upwind/reaching ----------
+     Polar by true wind angle, scaled for light air. Inside the 45° no-go
+     zone the boat tacks at 45° to the wind, so speed made good along the
+     rhumb is S / (2·sin45°·cos twa). */
+  function windAtTime(tFloat, world) {
+    var max = wx.hours.length - 1;
+    var i = Math.min(Math.max(Math.floor(tFloat), 0), max);
+    var f = Math.min(Math.max(tFloat - i, 0), 1);
+    var a = windAtHour(i, world);
+    var b = windAtHour(Math.min(i + 1, max), world);
+    if (!a) return b;
+    if (!b || !f) return a;
+    var va = windVector(a.ws, a.wd), vb = windVector(b.ws, b.wd);
+    return vecToWind(va[0] + (vb[0] - va[0]) * f, va[1] + (vb[1] - va[1]) * f);
+  }
+  function legHours(leg, wv) {
+    if (!wv || wv.ws < 0.5) return leg.nm / 1.0; /* drifting */
+    var twa = Math.abs(((leg.bt - wv.wd + 540) % 360) - 180); /* 0 = dead upwind */
+    var pol = twa < 70 ? 5.0 : twa < 110 ? 5.5 : twa < 150 ? 5.0 : 4.3;
+    var spd = pol * Math.min(1, Math.max(0.15, wv.ws / 8));
+    if (twa < 45) spd = spd / (1.4142 * Math.cos(twa * Math.PI / 180));
+    return leg.nm / spd;
+  }
+  function fmtEta(tHours) {
+    var d0 = wx.hours[0].iso.split('T')[0].split('-');
+    var dt = new Date(Date.UTC(+d0[0], +d0[1] - 1, +d0[2]) + tHours * 3600000);
+    var hh = dt.getUTCHours(), mm = dt.getUTCMinutes();
+    var h12 = hh % 12 === 0 ? 12 : hh % 12;
+    var base = h12 + ':' + String(mm).padStart(2, '0') + (hh < 12 ? ' AM' : ' PM');
+    var startDay = wx.hours[Math.min(scrub.valueAsNumber, wx.hours.length - 1)].iso.split('T')[0];
+    if (dt.toISOString().slice(0, 10) !== startDay) {
+      base = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dt.getUTCDay()] + ' ' + base;
+    }
+    return base;
+  }
   function paintLegWinds() {
-    if (!wx.samples) return;
-    var i = scrub.valueAsNumber;
+    if (!wx.samples || !wx.hours.length) return;
+    var t = scrub.valueAsNumber; /* race starts at the scrubbed hour */
     currentLegs.forEach(function (leg, n) {
       var windCell = legsEl.querySelector('.sail-windcell[data-leg="' + n + '"]');
+      var etaCell = legsEl.querySelector('.sail-eta[data-leg="' + n + '"]');
       if (!windCell) return;
-      var wv = windAtHour(i, leg.mid);
-      if (!wv) { windCell.textContent = '—'; return; }
-      windCell.innerHTML = Math.round(wv.ws) + ' kn <span class="muted">' + compass16(wv.wd) + '</span>';
+      /* two passes: rough duration from wind at leg start, then resample
+         at the leg's own mid-transit time */
+      var w0 = windAtTime(t, leg.mid);
+      var wMid = windAtTime(t + legHours(leg, w0) / 2, leg.mid);
+      var dur = legHours(leg, wMid);
+      t += dur;
+      if (!wMid) {
+        windCell.textContent = '—';
+        if (etaCell) etaCell.textContent = '—';
+        return;
+      }
+      windCell.innerHTML = wMid.ws.toFixed(1) + ' kn <span class="muted">' +
+        String(Math.round(wMid.wd)).padStart(3, '0') + '°</span>';
+      if (etaCell) etaCell.textContent = fmtEta(t);
     });
   }
 

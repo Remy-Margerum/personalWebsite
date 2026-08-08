@@ -698,6 +698,7 @@ h3 { font-size: 1.5rem; }
 .sail-table td:first-child { color: var(--muted); width: 2.2rem; }
 .sail-table td:nth-child(3), .sail-table td:nth-child(4) { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .sail-windcell { white-space: nowrap; }
+.sail-eta { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .sail-fine { font-size: .9rem; margin-top: 1.3rem; text-align: center; }
 .sail-fine + .sail-fine { margin-top: .5rem; }
 
