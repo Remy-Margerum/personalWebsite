@@ -113,6 +113,9 @@
   (D.geo.roadsMain || []).forEach(function (r) {
     el('path', { d: pathFrom([r]), 'class': 'ch-road' }, gLand);
   });
+  (D.geo.parking || []).forEach(function (pk) {
+    el('path', { d: pathFrom([pk], true), 'class': 'ch-roadmin' }, gLand);
+  });
   (D.geo.buildings || []).forEach(function (bd, i) {
     el('path', {
       d: pathFrom([bd], true),
@@ -130,13 +133,14 @@
     t.textContent = text;
     return t;
   }
+  /* labels sit over water or open land, placed by hand */
   geoLabel('S A N T A   B A R B A R A', -119.703, 34.4275, 'ch-city');
-  geoLabel('Leadbetter Beach', -119.7085, 34.4001, 'ch-place', -7);
+  geoLabel('Shoreline Park', -119.7095, 34.3982, 'ch-place', 0);
   geoLabel('Stearns Wharf', -119.6851, 34.4099, 'ch-place', 47);
-  geoLabel('Harbor', -119.6893, 34.4058, 'ch-place-sm', 0);
-  geoLabel('Yacht Club', -119.6928, 34.4024, 'ch-poi', 0);
-  geoLabel('Shoreline Café', -119.6979, 34.4016, 'ch-poi', 0);
-  geoLabel('S.B. City College', -119.6988, 34.4056, 'ch-poi', 0);
+  geoLabel('Harbor', -119.6868, 34.4040, 'ch-place-sm', 0);
+  geoLabel('Yacht Club', -119.6950, 34.4019, 'ch-poi', 0);
+  geoLabel('Shoreline Café', -119.6984, 34.4004, 'ch-poi', 0);
+  geoLabel('S.B. City College', -119.7002, 34.4062, 'ch-poi', 0);
 
   /* ---------- marks ---------- */
   var INSHORE = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'K', 'M', 'X'];
@@ -358,7 +362,7 @@
         : pts[i].slice();
       var segLen = Math.hypot(segEnd[0] - cur[0], segEnd[1] - cur[1]);
       mids.push({
-        mid: [(cur[0] + segEnd[0]) / 2, (cur[1] + segEnd[1]) / 2],
+        a: cur.slice(), b: segEnd.slice(),
         ang: Math.atan2(segEnd[1] - cur[1], segEnd[0] - cur[0]) * 180 / Math.PI,
         len: segLen
       });
@@ -434,15 +438,19 @@
     var guide = el('path', { d: d, 'class': 'ch-guide' }, gRoute);
     var flow = el('path', { d: d, 'class': 'ch-flow' }, gRoute);
 
-    /* leg direction arrows at midpoints */
+    /* leg direction arrows — two per leg where there is room */
     route.mids.forEach(function (g) {
-      if (g.len < 30 * z) return;
       var s = 5 * z;
-      el('path', {
-        d: 'M' + (-s) + ' ' + (-s * 0.75) + 'L' + (s * 1.1) + ' 0L' + (-s) + ' ' + (s * 0.75) + 'Z',
-        'class': 'ch-legarrow',
-        transform: 'translate(' + g.mid[0] + ' ' + g.mid[1] + ') rotate(' + g.ang + ')'
-      }, gRoute);
+      var fracs = g.len >= 52 * z ? [1 / 3, 2 / 3] : g.len >= 24 * z ? [0.5] : [];
+      fracs.forEach(function (t) {
+        var px = g.a[0] + (g.b[0] - g.a[0]) * t;
+        var py = g.a[1] + (g.b[1] - g.a[1]) * t;
+        el('path', {
+          d: 'M' + (-s) + ' ' + (-s * 0.75) + 'L' + (s * 1.1) + ' 0L' + (-s) + ' ' + (s * 0.75) + 'Z',
+          'class': 'ch-legarrow',
+          transform: 'translate(' + px + ' ' + py + ') rotate(' + g.ang + ')'
+        }, gRoute);
+      });
     });
 
     /* the route itself wraps each mark the way it is rounded */
@@ -664,6 +672,7 @@
     var su = 0, sv = 0, sw = 0;
     for (var k = 0; k < wx.sampleIds.length; k++) {
       var s = wx.samples[wx.sampleIds[k]];
+      if (!s || !s.world) continue;
       var dx = x - s.world[0], dy = y - s.world[1];
       var wgt = 1 / (dx * dx + dy * dy + 900);
       su += s.cu * wgt; sv += s.cv * wgt; sw += wgt;
@@ -697,6 +706,7 @@
       var k = reduceMotion ? 1 : 1 - Math.exp(-dt / 1.0);
       for (var si = 0; si < wx.sampleIds.length; si++) {
         var s = wx.samples[wx.sampleIds[si]];
+        if (!s) continue;
         s.cu += (s.tu - s.cu) * k;
         s.cv += (s.tv - s.cv) * k;
       }
