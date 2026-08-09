@@ -25,6 +25,9 @@ assets/js/sailing-data.js SBYC marks/courses + shoreline geometry (generated)
 assets/img/             Photos + favicon; assets/img/pdf/<slug>/ holds pre-rendered
                         page images (150 DPI JPGs, generated with PyMuPDF)
 assets/files/           Resume + academic PDFs (download links)
+infra/owntracks-relay/  Cloud Run relay for the live boat marker (service
+                        owntracks-relay, project margerum; POST token lives
+                        only in the Cloud Run env var, never in this repo)
 CNAME                   Custom domain for GitHub Pages (remymargerum.com)
 ```
 

@@ -640,6 +640,12 @@ h3 { font-size: 1.5rem; }
   100% { transform: scale(2.4); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .ch-obs-pulse { animation: none; opacity: 0; } }
+.ch-boat-tri {
+  fill: #2b6a9b;
+  stroke: var(--paper);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
 .sail-live {
   position: absolute;
   top: .9rem;

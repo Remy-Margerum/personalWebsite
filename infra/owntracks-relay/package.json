@@ -1,0 +1,12 @@
+{
+  "name": "owntracks-relay",
+  "version": "1.0.0",
+  "description": "OwnTracks relay for the remymargerum.com sailing chart",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -215,6 +215,44 @@
   });
   obsHit.addEventListener('mouseleave', hideTip);
 
+  /* live boat: OwnTracks relay — only ever has data during Wet Wednesdays
+     inside the race area (the relay filters everything else) */
+  var BOAT_URL = 'https://owntracks-relay-924564512726.us-central1.run.app/latest';
+  var boat = null; /* { w, heading, vel, t } */
+  var gBoat = el('g', { 'class': 'ch-boat', style: 'display:none' }, gMarks);
+  var boatTri = el('path', { d: 'M0 -7.5L5.2 6.5L0 3.6L-5.2 6.5Z', 'class': 'ch-boat-tri' }, gBoat);
+  var boatHit = el('circle', { cx: 0, cy: 0, r: 13, 'class': 'ch-hit' }, gBoat);
+  function placeBoat(z) {
+    if (!boat) return;
+    gBoat.setAttribute('transform',
+      'translate(' + boat.w[0] + ' ' + boat.w[1] + ') scale(' + z + ')');
+    boatTri.setAttribute('transform', boat.heading != null ? 'rotate(' + boat.heading + ')' : '');
+  }
+  boatHit.addEventListener('mouseenter', function () {
+    if (!boat) return;
+    var when = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit'
+    }).format(new Date(boat.t));
+    tooltip.innerHTML = '<strong>Remy</strong> live · ' + when +
+      (boat.vel != null ? ' · ' + boat.vel.toFixed(1) + ' kn' : '');
+    tooltip.style.display = 'block';
+    placeTipAt(boat.w);
+  });
+  boatHit.addEventListener('mouseleave', hideTip);
+  function loadBoat() {
+    if (document.hidden) return;
+    fetch(BOAT_URL).then(function (r) {
+      return r.status === 200 ? r.json() : null;
+    }).then(function (j) {
+      if (!j) { boat = null; gBoat.style.display = 'none'; return; }
+      boat = { w: P(j.lon, j.lat), heading: j.heading, vel: j.vel, t: j.t };
+      gBoat.style.display = '';
+      placeBoat(zoomOf(vb));
+    }).catch(function () {});
+  }
+  loadBoat();
+  setInterval(loadBoat, 60000);
+
   function fmtCoord(m) {
     function dmf(v, isLat) {
       var a = Math.abs(v), d = Math.floor(a), mn = (a - d) * 60;
@@ -292,6 +330,7 @@
     obsPulse.setAttribute('r', 6.5 * z);
     obsDot.setAttribute('r', 2.2 * z);
     obsHit.setAttribute('r', 13 * z);
+    placeBoat(z);
     placeStars(z);
     /* level of detail: shore labels only when close enough to read them */
     var poiV = z <= 2.8 ? '' : 'none';
