@@ -35,16 +35,14 @@
     var gate = document.getElementById('sail-gate');
     var blackout = document.getElementById('sail-blackout');
     var state = null;
-    try { state = sessionStorage.getItem('kernville'); } catch (e) {}
-    if (state === 'yes') { blackout.hidden = false; return; }
+    try { state = localStorage.getItem('kernville'); } catch (e) {}
     if (state === 'no') return;
     setTimeout(function () { gate.hidden = false; }, 5000);
     document.getElementById('gate-no').addEventListener('click', function () {
-      try { sessionStorage.setItem('kernville', 'no'); } catch (e) {}
+      try { localStorage.setItem('kernville', 'no'); } catch (e) {}
       gate.hidden = true;
     });
     document.getElementById('gate-yes').addEventListener('click', function () {
-      try { sessionStorage.setItem('kernville', 'yes'); } catch (e) {}
       gate.hidden = true;
       blackout.hidden = false;
     });
