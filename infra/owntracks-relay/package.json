@@ -8,5 +8,8 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^7.10.0"
   }
 }

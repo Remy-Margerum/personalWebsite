@@ -46,6 +46,7 @@
   var gWater = el('g', { 'class': 'ch-water' }, svg);
   var gStruct = el('g', { 'class': 'ch-struct' }, svg);
   var gGeoLabels = el('g', { 'class': 'ch-geolabels' }, svg);
+  var gTrack = el('g', { 'class': 'ch-track' }, svg);
   var gRoute = el('g', { 'class': 'ch-route' }, svg);
   var gMarkWind = el('g', { 'class': 'ch-markwind' }, svg);
   var gMarks = el('g', { 'class': 'ch-marks' }, svg);
@@ -250,8 +251,27 @@
       placeBoat(zoomOf(vb));
     }).catch(function () {});
   }
+
+  /* breadcrumb of the current race week (dotted trail), resets each Wed */
+  var TRACK_URL = 'https://owntracks-relay-924564512726.us-central1.run.app/track';
+  var trackPath = el('path', { d: '', 'class': 'ch-trackline' }, gTrack);
+  function loadTrack() {
+    if (document.hidden) return;
+    fetch(TRACK_URL).then(function (r) {
+      return r.ok ? r.json() : null;
+    }).then(function (j) {
+      if (!j || !j.points || j.points.length < 2) { trackPath.setAttribute('d', ''); return; }
+      var d = j.points.map(function (p, i) {
+        var w = P(p.lon, p.lat);
+        return (i ? 'L' : 'M') + w[0].toFixed(1) + ' ' + w[1].toFixed(1);
+      }).join('');
+      trackPath.setAttribute('d', d);
+    }).catch(function () {});
+  }
+
   loadBoat();
-  setInterval(loadBoat, 60000);
+  loadTrack();
+  setInterval(function () { loadBoat(); loadTrack(); }, 60000);
 
   function fmtCoord(m) {
     function dmf(v, isLat) {
