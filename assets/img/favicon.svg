@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <circle cx="32" cy="32" r="32" fill="#171310"/>
+  <circle cx="32" cy="32" r="27" fill="none" stroke="#C2A265" stroke-width="1.6"/>
+  <circle cx="32" cy="32" r="23" fill="none" stroke="#C2A265" stroke-width="0.8" opacity="0.55"/>
+  <text x="32" y="40" text-anchor="middle" font-family="Didot,'Bodoni MT','Times New Roman',serif" font-size="19" fill="#F1E9DB">SR</text>
+</svg>
