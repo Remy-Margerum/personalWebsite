@@ -14,6 +14,8 @@ contact-me/             Contact form (Formspree → remymargerum@gmail.com)
 vietnam/                "Northern Vietnam by Motorcycle" article
 sailing/                Live SBYC course chart with per-mark wind forecast
 cycling/                SB100 training feed
+fishing/                Bluefin SST chart — NOAA Geo-Polar 5 km sea-surface
+                        temperature over the Channel Islands, wind overlay
 privacy-policy/         Privacy policy
 lottery/                CA Lottery EV — offline stub (not in nav; app lives in the
                         separate ca-scratchers repo, currently disabled)
@@ -22,6 +24,8 @@ assets/css/style.css    All styling; design tokens in :root
 assets/js/pdf-viewer.js Pager logic for the document viewers
 assets/js/sailing.js    Sailing chart engine (projection, routes, wind field)
 assets/js/sailing-data.js SBYC marks/courses + shoreline geometry (generated)
+assets/js/fishing.js    Fishing chart engine (SST isotherms, wash, wind field)
+assets/js/fishing-data.js Channel Islands shoreline + fishing spots (generated)
 assets/img/             Photos + favicon; assets/img/pdf/<slug>/ holds pre-rendered
                         page images (150 DPI JPGs, generated with PyMuPDF)
 assets/files/           Resume + academic PDFs (download links)
@@ -88,3 +92,12 @@ on the page itself as their licenses require:
   course chart (effective 4/16/2025); coordinates and course sequences are
   factual data, credited to SBYC on the page. Not affiliated with or
   endorsed by SBYC.
+
+The fishing page (`assets/js/fishing.js`, same MIT terms as the sailing
+chart code) adds one more source: **sea-surface temperature** from the
+NOAA/NESDIS Geo-Polar Blended 5 km analysis, fetched in the browser from
+NOAA CoastWatch ERDDAP (`noaacwBLENDEDsstDNDaily`) via JSONP — the ERDDAP
+server doesn't send CORS headers, but its JSONP support works from a
+static page. US-government open data, credited on the page. Its shoreline
+in `fishing-data.js` is OSM-derived and remains subject to ODbL; wind is
+Open-Meteo, as above.

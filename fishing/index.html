@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fishing — Remy Margerum</title>
+  <meta name="description" content="Where the bluefin water is off Santa Barbara — NOAA sea-surface temperature contours drawn over a line chart of the Channel Islands, with the live wind field.">
+  <link rel="canonical" href="https://remymargerum.com/fishing/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Fishing — Remy Margerum">
+  <meta property="og:description" content="NOAA sea-surface temperature over the Channel Islands — chasing the 64–68 °F bluefin break from Santa Barbara Harbor.">
+  <meta property="og:url" content="https://remymargerum.com/fishing/">
+  <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <script src="/assets/js/fishing-data.js" defer></script>
+  <script src="/assets/js/fishing.js" defer></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a class="wordmark" href="/">Remy Margerum</a>
+    <button class="nav-toggle" aria-label="Open navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="site-nav" id="site-nav">
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/academic-work/">Academic Work</a></li>
+        <li><a href="/resume/">R&eacute;sum&eacute;</a></li>
+        <li><a href="/sailing/">Sailing</a></li>
+        <li><a href="/contact-me/">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <section class="section section--tight">
+    <div class="container">
+      <div class="article-header sail-header">
+        <span class="eyebrow">Off the Clock</span>
+        <h1>Fishing</h1>
+      </div>
+
+      <div class="sail-controls fish-controls">
+        <div class="sail-control sail-control--time">
+          <div class="sail-timehead">
+            <label for="fish-day">SST analysis day &mdash; <span id="fish-day-label">loading&hellip;</span></label>
+            <div class="sail-timebtns">
+              <button type="button" class="sail-wed" id="fish-back" title="Back one day">&minus;</button>
+              <button type="button" class="sail-wed" id="fish-fwd" title="Forward one day">+</button>
+            </div>
+          </div>
+          <input type="range" id="fish-day" min="0" max="7" value="7" step="1" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="sail-frame fish-frame" id="fish-frame">
+        <canvas id="fish-canvas" aria-hidden="true"></canvas>
+        <svg id="fish-svg" role="img" aria-label="Line-drawn chart of the Santa Barbara Channel and outer islands with NOAA sea-surface temperature contours and the bluefin grounds marked" preserveAspectRatio="xMidYMid slice"></svg>
+        <div class="fish-legend" aria-hidden="true">
+          <div class="fish-legend-title">Sea surface &deg;F</div>
+          <div class="fish-legend-bar"></div>
+          <div class="fish-legend-ticks">
+            <span style="left:33%;color:#33517a">60</span>
+            <span style="left:47%;color:#222">64</span>
+            <span style="left:60%;color:#a03a2c">68</span>
+            <span style="left:73%;color:#c07b3a">72</span>
+          </div>
+          <div class="fish-legend-note">64&ndash;68 is the zone &mdash; fish the break</div>
+        </div>
+        <div class="sail-rose" aria-hidden="true">
+          <svg viewBox="0 0 84 84">
+            <circle cx="42" cy="42" r="40" class="rose-ring"/>
+            <g class="rose-ticks">
+              <line x1="42" y1="2"  x2="42" y2="10"/>
+              <line x1="42" y1="74" x2="42" y2="82"/>
+              <line x1="2"  y1="42" x2="10" y2="42"/>
+              <line x1="74" y1="42" x2="82" y2="42"/>
+            </g>
+            <text x="42" y="20" class="rose-n">N</text>
+            <g id="rose-needle" class="rose-needle">
+              <path d="M42 14 L46.5 46 L42 41 L37.5 46 Z"/>
+            </g>
+            <text x="42" y="58" class="rose-spd"><tspan id="rose-spd">&ndash;</tspan><tspan class="rose-unit" dx="1">kn</tspan></text>
+            <text x="42" y="70" class="rose-dirlbl" id="rose-dir"></text>
+          </svg>
+        </div>
+        <div class="sail-tooltip" id="fish-tooltip"></div>
+        <span class="sail-credit">NOAA Geo-Polar blended 5 km SST<span id="fish-credit-date"></span></span>
+      </div>
+
+      <div class="sail-conditions" id="fish-conditions"><span class="muted">Fetching the water&hellip;</span></div>
+
+      <div class="sail-details">
+        <p class="sail-summary">Pacific bluefin are the cold-tolerant tuna &mdash; caught off
+        California from the mid-50s into the low 70s &deg;F. The number that matters isn&rsquo;t the
+        absolute temperature but the <strong>edge</strong>: the break where warm bight water bumps
+        against cooler upwelled water. Fish stack on those breaks, usually on the cool side, and
+        they follow bait more than they follow a thermometer. The gap between the black and red
+        lines above is the highest-percentage water on the chart.</p>
+
+        <div id="fish-table"></div>
+
+        <div class="fish-notes">
+          <p><strong>A &middot; Santa Rosa Flats.</strong> Closest option and the one to try first for
+          a day trip &mdash; the break tends to sit right over the shelf edge south of the northern
+          islands, exactly where the fleet has been finding fish &ldquo;sliding farther north.&rdquo;</p>
+          <p><strong>B &middot; Osborn Bank.</strong> Classic bluefin structure below Santa Barbara
+          Island with a real track record. When the chart shows it inside 70&deg;F-plus water it&rsquo;s
+          the warm-side gamble &mdash; worth it only if the break has moved east.</p>
+          <p><strong>C &middot; San Nicolas Island.</strong> The long run and overnight territory, but
+          the spot that keeps producing confirmed counts. If the break wraps the back of the island,
+          this is where the proven fish are.</p>
+        </div>
+
+        <p class="sail-fine muted">Working rule: find the 64&ndash;68&deg;F break over structure, then
+        look for bait, birds, breezing fish, and shiners. Hover the chart to read the water anywhere;
+        the dashed rings are 20, 40, and 60 nm from the harbor mouth, and runs and bearings
+        (magnetic, var 12.5&deg;E) are computed great-circle from the harbor. The analysis updates
+        daily and lags a day or two &mdash; scrub back through the week to watch the break move, and
+        pull a fresh chart the morning you leave. Check current CDFW bluefin limits and know the
+        Channel Islands sanctuary and MPA boundaries before you go. A chart for planning, not
+        navigation.</p>
+        <p class="sail-fine muted">SST: <a href="https://coastwatch.noaa.gov/erddap/griddap/noaacwBLENDEDsstDNDaily.html" target="_blank" rel="noopener">NOAA/NESDIS Geo-Polar Blended 5&nbsp;km analysis</a>,
+        served by NOAA CoastWatch ERDDAP (public open data, courtesy of NOAA) &middot; Wind forecast by
+        <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC&nbsp;BY&nbsp;4.0)
+        &middot; Shoreline &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
+        &middot; Spot marks are approximate fishing-grounds waypoints.</p>
+      </div>
+
+      <noscript><p class="center muted">The live chart needs JavaScript &mdash; without it, the
+      essentials: bluefin hold on the 64&ndash;68&deg;F temperature break outside the northern Channel
+      Islands. Options from Santa Barbara Harbor: the Santa Rosa Flats (~45 nm), Osborn Bank
+      (~70 nm), and San Nicolas Island (~70 nm).</p></noscript>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="cols">
+      <div>
+        <h4>Remy Margerum</h4>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="/">Home</a></li>
+          <li><a href="/academic-work/">Academic Work</a></li>
+          <li><a href="/resume/">R&eacute;sum&eacute;</a></li>
+          <li><a href="/sailing/">Sailing</a></li>
+          <li><a href="/contact-me/">Contact Me</a></li>
+          <li><a href="/privacy-policy/">Privacy Policy</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Connect</h4>
+        <div class="social-row">
+          <a href="https://www.linkedin.com/in/remy-margerum-95a460133/" target="_blank" rel="noopener" aria-label="LinkedIn">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45zM22.23 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.46c.98 0 1.77-.77 1.77-1.72V1.72C24 .77 23.21 0 22.23 0z"/></svg>
+          </a>
+          <a href="https://www.facebook.com/107543151372152" target="_blank" rel="noopener" aria-label="Facebook">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.09 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.7 4.53-4.7 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.95.93-1.95 1.89v2.26h3.32l-.53 3.49h-2.79V24C19.61 23.09 24 18.1 24 12.07z"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="fine">
+      <p>Copyright &copy; 2026 LBIRI, LLC &mdash; All Rights Reserved.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var t = document.querySelector('.nav-toggle'), n = document.getElementById('site-nav');
+    t.addEventListener('click', function () {
+      var open = n.classList.toggle('open');
+      t.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  })();
+</script>
+
+</body>
+</html>
