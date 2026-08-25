@@ -95,7 +95,11 @@ on the page itself as their licenses require:
   endorsed by SBYC.
 
 The fishing page (`assets/js/fishing.js`, same MIT terms as the sailing
-chart code) adds one more source: **sea-surface temperature** from the
+chart code) also shows the **NWS Los Angeles/Oxnard coastal waters
+forecast** (api.weather.gov CWF product, public domain) as its offshore
+weather panel, and draws the Channel Islands National Marine Sanctuary
+and state/federal MPA boundaries from OSM (ODbL, indicative only). Its
+main overlay source is **sea-surface temperature** from the
 NOAA/NESDIS Geo-Polar Blended 5 km analysis, fetched in the browser from
 NOAA CoastWatch ERDDAP (`noaacwBLENDEDsstDNDaily`) via JSONP — the ERDDAP
 server doesn't send CORS headers, but its JSONP support works from a

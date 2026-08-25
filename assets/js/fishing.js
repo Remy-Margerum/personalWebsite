@@ -41,9 +41,11 @@
   }
   var gIso = el('g', { 'class': 'ch-isog' }, svg);        /* isotherms — under land so they never cross the beach */
   var gWater = el('g', { 'class': 'ch-water' }, svg);      /* range rings — under land too */
+  var gBound = el('g', { 'class': 'ch-boundg' }, svg);     /* sanctuary + MPA boundaries, land covers the shore side */
   var gLand = el('g', { 'class': 'ch-land' }, svg);
   var gGeoFixed = el('g', { 'class': 'ch-geofixed' }, svg);/* big printed names, scale with the chart */
   var gGeoLabels = el('g', { 'class': 'ch-geolabels' }, svg);
+  var gMpaLbl = el('g', { 'class': 'ch-mpalbls' }, svg);   /* MPA names, only when zoomed right in */
   var gIsoLbl = el('g', { 'class': 'ch-isolbls' }, svg);
   var gMarkWind = el('g', { 'class': 'ch-markwind' }, svg);
   var gMarks = el('g', { 'class': 'ch-marks' }, svg);
@@ -95,6 +97,25 @@
     ringLbls.push(t);
   });
 
+  /* ---------- sanctuary + MPA boundaries (indicative, not navigational) ---------- */
+  var sanctPaths = [];
+  (D.sanctuary || []).forEach(function (r) {
+    sanctPaths.push(el('path', {
+      d: pathFrom([r], true), fill: 'none', 'class': 'ch-sanct'
+    }, gBound));
+  });
+  var mpaLblEls = [];
+  (D.mpas || []).forEach(function (m) {
+    el('path', {
+      d: pathFrom(m.rings, true),
+      'class': 'ch-mpa ch-mpa--' + m.kind
+    }, gBound);
+    var w = P(m.c[0], m.c[1]);
+    var t = el('text', { x: w[0], y: w[1], 'class': 'ch-mpalbl', 'text-anchor': 'middle' }, gMpaLbl);
+    t.textContent = m.name;
+    mpaLblEls.push(t);
+  });
+
   /* ---------- printed names ---------- */
   var chanLbl = el('text', {
     x: P(-120.02, 0)[0], y: P(0, 34.21)[1], 'class': 'ch-city', 'text-anchor': 'middle',
@@ -127,6 +148,7 @@
   geoLabel('Anacapa I.', -119.36, 34.055, 'ch-place');
   geoLabel('Santa Barbara I.', -119.08, 33.555, 'ch-place-sm');
   geoLabel('Begg Rock', -119.696, 33.388, 'ch-note');
+  geoLabel('Channel Is. National Marine Sanctuary', -120.42, 33.885, 'ch-note');
 
   /* Begg Rock — a charted high spot between the grounds, too small for
      the coastline extract */
@@ -213,8 +235,9 @@
     spotEls[id] = { g: g, lbl: lbl, w: w, hit: hit, dot: g.childNodes[1], buoy: g.childNodes[0] };
   });
 
-  /* ---------- view: one fixed fit around the grounds ---------- */
+  /* ---------- view: fitted to the grounds, zoomable from there ---------- */
   var vb = { x: 0, y: 0, w: 100, h: 100 };
+  var baseView = null;
   function fitView() {
     var pts = [harborW, P(-120.72, 34.47), P(-118.92, 33.16), P(-120.47, 33.9)];
     SPOT_IDS.forEach(function (id) { pts.push(pOf(D.spots[id])); });
@@ -230,7 +253,29 @@
     var w = bb.w + padX * 2, h = bb.h + padT + padB;
     var cx = bb.x + bb.w / 2, cy = bb.y - padT / 2 + padB / 2 + bb.h / 2;
     if (w / h < aspect) w = h * aspect; else h = w / aspect;
-    applyView({ x: cx - w / 2, y: cy - h / 2, w: w, h: h });
+    baseView = { x: cx - w / 2, y: cy - h / 2, w: w, h: h };
+    applyView(baseView);
+  }
+  function clampView(v) {
+    if (!baseView) return v;
+    var w = Math.min(baseView.w, Math.max(baseView.w / 12, v.w));
+    var h = w * (baseView.h / baseView.w);
+    return {
+      w: w, h: h,
+      x: Math.min(Math.max(v.x, baseView.x), baseView.x + baseView.w - w),
+      y: Math.min(Math.max(v.y, baseView.y), baseView.y + baseView.h - h)
+    };
+  }
+  function zoomAt(factor, sx, sy) {
+    var wpt = screenToWorld(sx, sy);
+    var w = vb.w * factor, h = vb.h * factor;
+    applyView(clampView({
+      x: wpt[0] - sx / frame.clientWidth * w,
+      y: wpt[1] - sy / frame.clientHeight * h,
+      w: w, h: h
+    }));
+    scheduleRebuild();
+    if (reduceMotion) tick(performance.now());
   }
   function zoomOf(v) { return v.w / (frame.clientWidth || 800); }
   function worldToScreen(w) {
@@ -275,6 +320,16 @@
     Array.prototype.forEach.call(gWater.querySelectorAll('.ch-ring'), function (c) {
       c.style.strokeDasharray = rd;
     });
+    /* sanctuary boundary: chart-style long dash, screen-constant */
+    var sd = (9 * z) + ' ' + (4 * z) + ' ' + (2 * z) + ' ' + (4 * z);
+    sanctPaths.forEach(function (p) { p.style.strokeDasharray = sd; });
+    /* MPA names only when zoomed right in */
+    gMpaLbl.style.fontSize = (9.5 * z) + 'px';
+    gMpaLbl.style.display = z <= 1.35 ? '' : 'none';
+    placeBoat(z);
+    if (resetBtn && baseView) {
+      resetBtn.style.display = vb.w < baseView.w * 0.985 ? '' : 'none';
+    }
   }
 
   /* ---------- coastline draw-on ---------- */
@@ -797,6 +852,144 @@
     hideTip();
   });
 
+  /* ---------- zoom + pan: wheel, drag, pinch, double-click, reset ----------
+     the labels and arrows are rebuilt once the gesture settles */
+  var resetBtn = document.getElementById('fish-reset');
+  var rebuildT = null;
+  function scheduleRebuild() {
+    clearTimeout(rebuildT);
+    rebuildT = setTimeout(function () {
+      if (sst && sstU) drawIso(sst, sstU);
+      buildWindArrows();
+    }, 200);
+  }
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function () {
+      fitView();
+      scheduleRebuild();
+      if (reduceMotion) tick(performance.now());
+    });
+  }
+  frame.addEventListener('wheel', function (ev) {
+    ev.preventDefault();
+    var r = frame.getBoundingClientRect();
+    zoomAt(Math.pow(1.0016, ev.deltaY), ev.clientX - r.left, ev.clientY - r.top);
+  }, { passive: false });
+  frame.addEventListener('dblclick', function (ev) {
+    var r = frame.getBoundingClientRect();
+    zoomAt(0.5, ev.clientX - r.left, ev.clientY - r.top);
+  });
+  var pointers = {}, pCount = 0, pinch = null, drag = null;
+  frame.addEventListener('pointerdown', function (ev) {
+    if (ev.button !== 0) return;
+    /* leave the frame's buttons and controls their clicks */
+    if (ev.target.closest && ev.target.closest('button')) return;
+    pointers[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+    pCount++;
+    if (pCount === 1 && ev.pointerType === 'mouse') {
+      drag = { x: ev.clientX, y: ev.clientY, vb: { x: vb.x, y: vb.y, w: vb.w, h: vb.h }, moved: false };
+    }
+    if (pCount === 2) {
+      var ids = Object.keys(pointers);
+      var a = pointers[ids[0]], b = pointers[ids[1]];
+      pinch = {
+        d: Math.hypot(a.x - b.x, a.y - b.y),
+        vb: { x: vb.x, y: vb.y, w: vb.w, h: vb.h }
+      };
+      drag = null;
+    }
+  });
+  frame.addEventListener('pointermove', function (ev) {
+    var p = pointers[ev.pointerId];
+    if (!p) return;
+    if (drag && ev.pointerType === 'mouse' && ev.buttons === 0) {
+      /* released outside the frame — stale drag */
+      endPointer(ev);
+      return;
+    }
+    p.x = ev.clientX;
+    p.y = ev.clientY;
+    if (pinch && pCount >= 2) {
+      var ids = Object.keys(pointers);
+      var a = pointers[ids[0]], b = pointers[ids[1]];
+      var d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+      var r = frame.getBoundingClientRect();
+      var mx = (a.x + b.x) / 2 - r.left, my = (a.y + b.y) / 2 - r.top;
+      var w = pinch.vb.w * (pinch.d / d);
+      var scale = w / vb.w;
+      var wpt = screenToWorld(mx, my);
+      applyView(clampView({
+        x: wpt[0] - mx / frame.clientWidth * vb.w * scale,
+        y: wpt[1] - my / frame.clientHeight * vb.h * scale,
+        w: vb.w * scale, h: vb.h * scale
+      }));
+      scheduleRebuild();
+    } else if (drag) {
+      var dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+      if (!drag.moved && Math.hypot(dx, dy) < 3) return;
+      drag.moved = true;
+      hideTip();
+      applyView(clampView({
+        x: drag.vb.x - dx / frame.clientWidth * drag.vb.w,
+        y: drag.vb.y - dy / frame.clientHeight * drag.vb.h,
+        w: drag.vb.w, h: drag.vb.h
+      }));
+      scheduleRebuild();
+    }
+    if ((pinch || (drag && drag.moved)) && reduceMotion) tick(performance.now());
+  });
+  function endPointer(ev) {
+    if (pointers[ev.pointerId]) {
+      delete pointers[ev.pointerId];
+      pCount = Math.max(0, pCount - 1);
+    }
+    if (pCount < 2) pinch = null;
+    if (pCount === 0) drag = null;
+  }
+  document.addEventListener('pointerup', endPointer);
+  document.addEventListener('pointercancel', endPointer);
+  /* let one finger scroll the page; claim the gesture only when two land */
+  frame.addEventListener('touchmove', function (ev) {
+    if (ev.touches.length >= 2) ev.preventDefault();
+  }, { passive: false });
+
+  /* ---------- live position, same relay as the sailing chart ----------
+     the relay only reports when the tracker is on and inside its window;
+     when it has nothing, the marker simply stays hidden */
+  var BOAT_URL = 'https://owntracks-relay-924564512726.us-central1.run.app/latest';
+  var boat = null;
+  var gBoat = el('g', { 'class': 'ch-boat', style: 'display:none' }, gMarks);
+  var boatTri = el('path', { d: 'M0 -7.5L5.2 6.5L0 3.6L-5.2 6.5Z', 'class': 'ch-boat-tri' }, gBoat);
+  var boatHit = el('circle', { cx: 0, cy: 0, r: 13, 'class': 'ch-hit' }, gBoat);
+  function placeBoat(z) {
+    if (!boat) return;
+    gBoat.setAttribute('transform',
+      'translate(' + boat.w[0] + ' ' + boat.w[1] + ') scale(' + z + ')');
+    boatTri.setAttribute('transform', boat.heading != null ? 'rotate(' + boat.heading + ')' : '');
+  }
+  boatHit.addEventListener('mouseenter', function () {
+    if (!boat) return;
+    var when = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit'
+    }).format(new Date(boat.t));
+    tooltip.innerHTML = '<strong>Remy</strong> live · ' + when +
+      (boat.vel != null ? ' · ' + boat.vel.toFixed(1) + ' kn' : '');
+    tooltip.style.display = 'block';
+    placeTipAt(worldToScreen(boat.w));
+  });
+  boatHit.addEventListener('mouseleave', hideTip);
+  function loadBoat() {
+    if (document.hidden) return;
+    fetch(BOAT_URL).then(function (r) {
+      return r.status === 200 ? r.json() : null;
+    }).then(function (j) {
+      if (!j) { boat = null; gBoat.style.display = 'none'; return; }
+      boat = { w: P(j.lon, j.lat), heading: j.heading, vel: j.vel, t: j.t };
+      gBoat.style.display = '';
+      placeBoat(zoomOf(vb));
+    }).catch(function () {});
+  }
+
   /* ---------- day scrubber: NOAA analyses back, model days forward ---------- */
   var MAXBACK = 7;
   function fmtDay(iso) {
@@ -837,14 +1030,17 @@
     if (!g.fcst) return 'analysis ' + fmtDay(g.date);
     return (g.date > laToday() ? 'forecast ' : 'model ') + fmtDay(g.date);
   }
+  var sstU = null;
   function activateGrid(g) {
     sst = g;
     var u = upsample(g, upFactor(g));
+    sstU = u;
     buildTint(g, u);
     drawIso(g, u);
     setWindForGrid(g);
     paintConditions();
     paintTable();
+    paintWx();
     dayLabel.textContent = labelFor(g);
     if (creditSrc) {
       creditSrc.textContent = g.fcst
@@ -1043,6 +1239,154 @@
       rows + '</tbody></table>';
   }
 
+  /* ---------- offshore weather: NWS LOX coastal waters forecast ----------
+     one product fetch carries the synopsis and every zone's day-by-day
+     text; the panel windows it to the selected water day + 3 */
+  var CWF_ZONES = [
+    { id: 'PZZ650', label: 'Channel' },
+    { id: 'PZZ673', label: 'Outer waters' }
+  ];
+  var cwf = null;
+  var wxZone = 'PZZ650';
+  function esc(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function wdOf(iso) {
+    var p = iso.split('-');
+    return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay();
+  }
+  function parseCwf(text, issuanceIso) {
+    var issued = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(new Date(issuanceIso));
+    var WD = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    var out = { synopsis: '', updated: '', zones: {} };
+    text.split(/^\$\$\s*$/m).forEach(function (blk) {
+      var zm = blk.match(/^(PZZ\d{3})-[\d-]+\s*$/m);
+      if (!zm) return;
+      var zone = zm[1];
+      if (!out.updated) {
+        var um = blk.match(/^\d{3,4} [AP]M [A-Z]{3,4} \w{3} \w{3} \d+ \d{4}$/m);
+        if (um) out.updated = um[0];
+      }
+      var periods = [], headlines = [], cur = null;
+      blk.split('\n').forEach(function (ln) {
+        var hm = ln.match(/^\.\.\.(.+?)(\.\.\.)?\s*$/);
+        if (hm) {
+          /* ...SMALL CRAFT ADVISORY... style headline, not a period */
+          headlines.push(hm[1]);
+          cur = null;
+          return;
+        }
+        var m = ln.match(/^\.(.+?)\.\.\.(.*)$/);
+        if (m) {
+          cur = { name: m[1].trim(), text: m[2] };
+          periods.push(cur);
+        } else if (cur) {
+          cur.text += ' ' + ln.trim();
+        }
+      });
+      periods.forEach(function (p) { p.text = p.text.replace(/\s+/g, ' ').trim(); });
+      if (zone === 'PZZ600') {
+        /* the synopsis header wraps over several lines before its '...' */
+        var sm = blk.match(/\.Synopsis[\s\S]*?\.\.\.([\s\S]*)$/i);
+        if (sm) out.synopsis = sm[1].replace(/\s+/g, ' ').trim();
+        return;
+      }
+      /* walk the periods onto calendar days: night periods close a day,
+         weekday names snap the cursor (holiday names just flow through) */
+      var cursor = issued;
+      periods.forEach(function (p) {
+        var U = p.name.toUpperCase();
+        var wd = WD.indexOf(U.split(' ')[0]);
+        if (wd >= 0) {
+          /* snap to that weekday, but never commit a failed search */
+          var probe = cursor;
+          for (var s = 0; s < 7 && wdOf(probe) !== wd; s++) probe = addDays(probe, 1);
+          if (wdOf(probe) === wd) cursor = probe;
+        }
+        p.date = cursor;
+        p.night = /NIGHT$|^TONIGHT$|^OVERNIGHT$/.test(U);
+        if (p.night) cursor = addDays(cursor, 1);
+      });
+      out.zones[zone] = periods;
+      out.zones[zone].headlines = headlines;
+    });
+    return out;
+  }
+  function paintWx() {
+    if (!cwf) return;
+    var wrap = document.getElementById('fish-wx');
+    var daysEl = document.getElementById('fish-wx-days');
+    var noteEl = document.getElementById('fish-wx-note');
+    if (!wrap || !daysEl) return;
+    var periods = cwf.zones[wxZone] || [];
+    var base = laToday();
+    var note = '';
+    if (sst && sst.date) {
+      if (sst.date > base) base = sst.date;
+      else if (sst.date < base) note = 'the zone forecast starts today — showing ' + fmtDay(base) + ' on';
+    }
+    var end = addDays(base, 3);
+    var order = [], byDay = {};
+    periods.forEach(function (p) {
+      if (!p.date || p.date < base || p.date > end) return;
+      if (!byDay[p.date]) { byDay[p.date] = { day: null, night: null }; order.push(p.date); }
+      if (p.night) { if (!byDay[p.date].night) byDay[p.date].night = p; }
+      else if (!byDay[p.date].day) byDay[p.date].day = p;
+    });
+    var html = '';
+    (periods.headlines || []).forEach(function (h) {
+      html += '<div class="fish-wx-alert">' + esc(h) + '</div>';
+    });
+    order.forEach(function (d) {
+      var e = byDay[d];
+      html += '<div class="fish-wx-day"><b>' + fmtDay(d) + '</b> — ' +
+        (e.day ? esc(e.day.text) : '') +
+        (e.night ? ' <span class="fish-wx-night">' + (e.day ? 'Night: ' : '(night) ') +
+          esc(e.night.text) + '</span>' : '') +
+        '</div>';
+    });
+    if (!html) {
+      html = '<div class="fish-wx-day muted">The selected day is beyond the zone forecast, ' +
+        'which runs about five days out.</div>';
+    }
+    daysEl.innerHTML = html;
+    if (noteEl) noteEl.textContent = note;
+    wrap.hidden = false;
+  }
+  function loadWx() {
+    fetch('https://api.weather.gov/products/types/CWF/locations/LOX/latest')
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !j.productText) return;
+        cwf = parseCwf(j.productText, j.issuanceTime);
+        var syn = document.getElementById('fish-wx-synopsis');
+        if (syn) syn.textContent = cwf.synopsis;
+        var upd = document.getElementById('fish-wx-updated');
+        if (upd && cwf.updated) upd.textContent = 'updated ' + cwf.updated;
+        var zw = document.getElementById('fish-wx-zones');
+        if (zw && !zw.firstChild) {
+          CWF_ZONES.forEach(function (zn) {
+            if (!cwf.zones[zn.id]) return;
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'fish-wx-zone' + (zn.id === wxZone ? ' is-active' : '');
+            b.textContent = zn.label + ' · ' + zn.id;
+            b.addEventListener('click', function () {
+              wxZone = zn.id;
+              Array.prototype.forEach.call(zw.children, function (c) {
+                c.classList.toggle('is-active', c === b);
+              });
+              paintWx();
+            });
+            zw.appendChild(b);
+          });
+        }
+        paintWx();
+      }).catch(function () { /* the panel just stays hidden */ });
+  }
+
   /* ---------- boot ---------- */
   function boot() {
     resizeCanvas();
@@ -1050,6 +1394,9 @@
     paintTable();
     loadDay(0);
     loadWind();
+    loadWx();
+    loadBoat();
+    setInterval(loadBoat, 60000);
     if (!reduceMotion) requestAnimationFrame(tick);
     else tick(performance.now());
   }

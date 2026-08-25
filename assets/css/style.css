@@ -882,6 +882,7 @@ h3 { font-size: 1.5rem; }
   margin: 0 auto;
   height: clamp(440px, 74vh, 660px);
   cursor: crosshair;
+  touch-action: pan-y; /* one finger scrolls the page; two zoom the chart */
 }
 
 /* isotherms — same colors as the printed chart in the write-up, muted for paper */
@@ -913,6 +914,29 @@ h3 { font-size: 1.5rem; }
 .ch-ring { fill: none; stroke: #b6bfc9; stroke-width: 1; opacity: .9; vector-effect: non-scaling-stroke; }
 .ch-ringlbl { fill: #9aa4ae; font-style: italic; letter-spacing: .08em; }
 .ch-rock { stroke: var(--muted); stroke-width: 1.1; opacity: .8; vector-effect: non-scaling-stroke; }
+
+/* sanctuary + MPA boundaries — the protective family reads violet,
+   distinct from the temperature inks */
+.ch-sanct { stroke: #9a7aa8; stroke-width: 1.2; opacity: .75; vector-effect: non-scaling-stroke; }
+.ch-mpa { stroke-width: .9; vector-effect: non-scaling-stroke; }
+.ch-mpa--smr { fill: rgba(122, 84, 130, .13); stroke: #7a5482; opacity: .8; }
+.ch-mpa--smca { fill: rgba(122, 84, 130, .07); stroke: #9a7aa8; opacity: .8; stroke-dasharray: 3 3; }
+.ch-mpalbl {
+  fill: #7a5482;
+  font-style: italic;
+  letter-spacing: .04em;
+  stroke: var(--paper);
+  stroke-width: .28em;
+  paint-order: stroke;
+  stroke-linejoin: round;
+}
+
+.fish-reset {
+  position: absolute;
+  right: .9rem;
+  bottom: .6rem;
+  z-index: 2;
+}
 
 /* SST legend panel */
 .fish-legend {
@@ -1004,6 +1028,13 @@ h3 { font-size: 1.5rem; }
 .fish-wx-synopsis { font-style: italic; color: var(--muted); font-size: .92rem; margin-bottom: .5rem; }
 .fish-wx-note { font-size: .8rem; margin-bottom: .2rem; }
 .fish-wx-note:empty { display: none; }
+.fish-wx-alert {
+  font-size: .78rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #a03a2c;
+  padding: .3rem 0 .1rem;
+}
 .fish-wx-day { padding: .34rem 0; border-top: 1px solid var(--line); }
 .fish-wx-day b { color: var(--black); }
 .fish-wx-night { color: var(--muted); font-size: .9em; }
