@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
   <!-- versioned so a CDN-cached pre-fishing stylesheet can never pair with this page -->
-  <link rel="stylesheet" href="/assets/css/style.css?v=2">
+  <link rel="stylesheet" href="/assets/css/style.css?v=3">
   <script src="/assets/js/fishing-data.js" defer></script>
   <script src="/assets/js/fishing.js" defer></script>
 </head>
@@ -66,6 +66,20 @@
           </div>
           <input type="range" id="fish-day" min="0" max="7" value="7" step="1" autocomplete="off">
         </div>
+      </div>
+
+      <div class="fish-wx" id="fish-wx" hidden>
+        <div class="fish-wx-head">
+          <span class="fish-wx-title">Offshore weather</span>
+          <span class="fish-wx-zones" id="fish-wx-zones"></span>
+          <span class="fish-wx-updated" id="fish-wx-updated"></span>
+        </div>
+        <p class="fish-wx-synopsis" id="fish-wx-synopsis"></p>
+        <p class="fish-wx-note muted" id="fish-wx-note"></p>
+        <div id="fish-wx-days"></div>
+        <p class="fish-wx-fine">NWS Los Angeles/Oxnard
+        <a href="https://forecast.weather.gov/MapClick.php?zoneid=PZZ650" target="_blank" rel="noopener">coastal waters forecast</a>
+        &middot; four days from the selected water day</p>
       </div>
 
       <div class="sail-frame fish-frame" id="fish-frame">
