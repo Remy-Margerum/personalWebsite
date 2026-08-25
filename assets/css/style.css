@@ -714,6 +714,13 @@ h3 { font-size: 1.5rem; }
 .rose-ring { fill: rgba(255,255,255,.72); stroke: var(--line); stroke-width: 1; }
 .rose-ticks line { stroke: var(--muted); stroke-width: 1; }
 .rose-n { fill: var(--muted); font-size: 10px; text-anchor: middle; letter-spacing: .1em; }
+/* paper halo so the needle never runs over the rose text */
+.rose-n, .rose-spd, .rose-dirlbl {
+  stroke: var(--paper);
+  stroke-width: 3px;
+  paint-order: stroke;
+  stroke-linejoin: round;
+}
 .rose-needle { transform-origin: 42px 42px; transition: transform .8s ease; }
 .rose-needle path { fill: var(--brown); }
 .rose-spd { fill: var(--ink); font-size: 15px; text-anchor: middle; }
@@ -959,6 +966,16 @@ svg[data-view="structure"] .ch-isolbl { opacity: .45; }
 
 .tt-mpa { color: #7a5482; font-size: .82rem; }
 
+/* fishing chart: the hover readout sits bottom-left, above the credit */
+.fish-readout {
+  left: .9rem;
+  right: auto;
+  top: auto;
+  bottom: 2.2rem;
+  pointer-events: none;
+}
+@media (max-width: 700px) { .fish-readout { left: .7rem; bottom: 2rem; } }
+
 .fish-control--species { flex: 0 1 24rem; }
 .fish-control--species select {
   width: 100%;
@@ -978,6 +995,7 @@ svg[data-view="structure"] .ch-isolbl { opacity: .45; }
 .ch-mpa { stroke-width: .9; vector-effect: non-scaling-stroke; }
 .ch-mpa--smr { fill: rgba(122, 84, 130, .13); stroke: #7a5482; opacity: .8; }
 .ch-mpa--smca { fill: rgba(122, 84, 130, .07); stroke: #9a7aa8; opacity: .8; stroke-dasharray: 3 3; }
+.ch-mpa--closure { fill: rgba(93, 63, 102, .22); stroke: #5d3f66; opacity: .85; }
 .ch-mpalbl {
   fill: #7a5482;
   font-style: italic;

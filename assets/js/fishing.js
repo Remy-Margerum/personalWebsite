@@ -262,11 +262,8 @@
     return pts[Math.round(deg / 22.5) % 16];
   }
 
-  function placeTipAt(s) {
-    var tw = tooltip.offsetWidth;
-    tooltip.style.left = Math.max(6, Math.min(frame.clientWidth - tw - 6, s[0] - tw / 2)) + 'px';
-    tooltip.style.top = Math.max(6, s[1] - 44) + 'px';
-  }
+  /* the readout is pinned bottom-left by CSS — nothing follows the cursor */
+  function placeTipAt() {}
   function hideTip() { tooltip.style.display = 'none'; }
   svg.addEventListener('click', hideTip);
 
@@ -1002,12 +999,16 @@
       var parts = [];
       if (t != null) parts.push('<strong>' + t.toFixed(1) + ' °F</strong>');
       if (dep != null) parts.push(fmtDepth(dep));
+      var wv = windAtWorld(w);
+      if (wv) parts.push(Math.round(wv.ws) + ' kn ' + compass16(wv.wd));
       parts.push(Math.round(distNm(w)) + ' nm ' + compass16(brgTrue(w)) + ' of the harbor');
       var html = parts.join(' · ');
       var mpa = mpaAt(lon, lat);
       if (mpa) {
-        html += '<br><span class="tt-mpa">inside ' + mpa.name +
-          (mpa.kind === 'smr' ? ' — no take' : ' — restricted take, check the regs') + '</span>';
+        html += '<br><span class="tt-mpa">inside ' + mpa.name + (
+          mpa.kind === 'smr' ? ' — no take' :
+          mpa.kind === 'closure' ? ' — special closure, keep clear' :
+          ' — restricted take, check the regs') + '</span>';
       }
       tooltip.innerHTML = html;
       tooltip.style.display = 'block';
