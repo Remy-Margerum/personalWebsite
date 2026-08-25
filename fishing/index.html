@@ -51,7 +51,7 @@
       <div class="sail-controls fish-controls">
         <div class="sail-control sail-control--time">
           <div class="sail-timehead">
-            <label for="fish-day">SST analysis day &mdash; <span id="fish-day-label">loading&hellip;</span></label>
+            <label for="fish-day">Water day &mdash; <span id="fish-day-label">loading&hellip;</span></label>
             <div class="sail-timebtns">
               <button type="button" class="sail-wed" id="fish-back" title="Back one day">&minus;</button>
               <button type="button" class="sail-wed" id="fish-fwd" title="Forward one day">+</button>
@@ -93,7 +93,7 @@
           </svg>
         </div>
         <div class="sail-tooltip" id="fish-tooltip"></div>
-        <span class="sail-credit">NOAA Geo-Polar blended 5 km SST<span id="fish-credit-date"></span></span>
+        <span class="sail-credit"><span id="fish-credit-src">NOAA Geo-Polar blended 5 km SST</span><span id="fish-credit-date"></span></span>
       </div>
 
       <div class="sail-conditions" id="fish-conditions"><span class="muted">Fetching the water&hellip;</span></div>
@@ -123,14 +123,17 @@
         <p class="sail-fine muted">Working rule: find the 64&ndash;68&deg;F break over structure, then
         look for bait, birds, breezing fish, and shiners. Hover the chart to read the water anywhere;
         the dashed rings are 20, 40, and 60 nm from the harbor mouth, and runs and bearings
-        (magnetic, var 12.5&deg;E) are computed great-circle from the harbor. The analysis updates
-        daily and lags a day or two &mdash; scrub back through the week to watch the break move, and
-        pull a fresh chart the morning you leave. Check current CDFW bluefin limits and know the
-        Channel Islands sanctuary and MPA boundaries before you go. A chart for planning, not
-        navigation.</p>
-        <p class="sail-fine muted">SST: <a href="https://coastwatch.noaa.gov/erddap/griddap/noaacwBLENDEDsstDNDaily.html" target="_blank" rel="noopener">NOAA/NESDIS Geo-Polar Blended 5&nbsp;km analysis</a>,
-        served by NOAA CoastWatch ERDDAP (public open data, courtesy of NOAA) &middot; Wind forecast by
-        <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC&nbsp;BY&nbsp;4.0)
+        (magnetic, var 12.5&deg;E) are computed great-circle from the harbor. Scrub back through the
+        week of NOAA analyses to watch the break move, or forward past the latest analysis: forward
+        days switch to an ocean-model forecast, drawn with dashed isotherms &mdash; coarser than the
+        5&nbsp;km analysis, so trust the break&rsquo;s trend more than its exact position. The wind
+        layer follows the day you pick (midday, or right now for the current view). Check current
+        CDFW bluefin limits and know the Channel Islands sanctuary and MPA boundaries before you go.
+        A chart for planning, not navigation.</p>
+        <p class="sail-fine muted">SST analyses: <a href="https://coastwatch.noaa.gov/erddap/griddap/noaacwBLENDEDsstDNDaily.html" target="_blank" rel="noopener">NOAA/NESDIS Geo-Polar Blended 5&nbsp;km analysis</a>,
+        served by NOAA CoastWatch ERDDAP (public open data, courtesy of NOAA) &middot; SST forecast and wind by
+        <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC&nbsp;BY&nbsp;4.0;
+        sea-surface forecast from the M&eacute;t&eacute;o-France global ocean model)
         &middot; Shoreline &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
         &middot; Spot marks are approximate fishing-grounds waypoints.</p>
       </div>

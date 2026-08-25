@@ -322,27 +322,16 @@
   var backBtn = document.getElementById('fish-back');
   var fwdBtn = document.getElementById('fish-fwd');
 
-  function parseGrid(tbl) {
-    var rows = tbl.table.rows;
-    var latSet = {}, lonSet = {};
-    rows.forEach(function (r) { latSet[r[1]] = 1; lonSet[r[2]] = 1; });
-    var lats = Object.keys(latSet).map(Number).sort(function (a, b) { return a - b; });
-    var lons = Object.keys(lonSet).map(Number).sort(function (a, b) { return a - b; });
-    var li = {}, gi = {};
-    lats.forEach(function (v, i) { li[v] = i; });
-    lons.forEach(function (v, i) { gi[v] = i; });
-    var v = new Float64Array(lats.length * lons.length);
-    for (var i = 0; i < v.length; i++) v[i] = NaN;
+  /* shared grid finisher: min/max plus land cells filled from their water
+     neighbours so isotherms and the wash run to the beach; the land fill
+     covers the made-up part. fcst marks model output (vs NOAA analysis). */
+  function finishGrid(lats, lons, v, date, fcst) {
     var min = Infinity, max = -Infinity;
-    rows.forEach(function (r) {
-      if (r[3] == null) return;
-      var f = r[3] * 1.8 + 32;
-      v[li[r[1]] * lons.length + gi[r[2]]] = f;
-      if (f < min) min = f;
-      if (f > max) max = f;
-    });
-    /* fill land cells from their water neighbours so isotherms and the
-       wash run to the beach; the land fill covers the made-up part */
+    for (var i = 0; i < v.length; i++) {
+      if (isNaN(v[i])) continue;
+      if (v[i] < min) min = v[i];
+      if (v[i] > max) max = v[i];
+    }
     var vf = new Float64Array(v);
     for (var pass = 0; pass < 2; pass++) {
       var src = new Float64Array(vf);
@@ -363,10 +352,25 @@
         }
       }
     }
-    return {
-      lats: lats, lons: lons, v: v, vf: vf, min: min, max: max,
-      date: rows.length ? rows[0][0].slice(0, 10) : null
-    };
+    return { lats: lats, lons: lons, v: v, vf: vf, min: min, max: max, date: date, fcst: !!fcst };
+  }
+
+  function parseGrid(tbl) {
+    var rows = tbl.table.rows;
+    var latSet = {}, lonSet = {};
+    rows.forEach(function (r) { latSet[r[1]] = 1; lonSet[r[2]] = 1; });
+    var lats = Object.keys(latSet).map(Number).sort(function (a, b) { return a - b; });
+    var lons = Object.keys(lonSet).map(Number).sort(function (a, b) { return a - b; });
+    var li = {}, gi = {};
+    lats.forEach(function (v, i) { li[v] = i; });
+    lons.forEach(function (v, i) { gi[v] = i; });
+    var v = new Float64Array(lats.length * lons.length);
+    for (var i = 0; i < v.length; i++) v[i] = NaN;
+    rows.forEach(function (r) {
+      if (r[3] == null) return;
+      v[li[r[1]] * lons.length + gi[r[2]]] = r[3] * 1.8 + 32;
+    });
+    return finishGrid(lats, lons, v, rows.length ? rows[0][0].slice(0, 10) : null, false);
   }
 
   /* bilinear sample of the raw (not land-filled) grid, °F or null */
@@ -476,14 +480,15 @@
     return chains;
   }
 
-  function drawIso() {
+  function upFactor(g) { return g.fcst ? 6 : 3; }
+
+  function drawIso(g, u) {
     while (gIso.firstChild) gIso.removeChild(gIso.firstChild);
     while (gIsoLbl.firstChild) gIsoLbl.removeChild(gIsoLbl.firstChild);
-    if (!sst) return;
-    var u = upsample(sst, 3);
+    if (!g) return;
     var z = zoomOf(vb);
     LEVELS.forEach(function (level) {
-      var chains = marchLevel(u, sst, level);
+      var chains = marchLevel(u, g, level);
       if (!chains.length) return;
       var d = '';
       chains.forEach(function (ch) {
@@ -493,12 +498,15 @@
         });
       });
       var ISO_INK = { 60: '#33517a', 64: '#222222', 68: '#a03a2c', 72: '#c07b3a' };
-      el('path', {
+      var attrs = {
         d: d, fill: 'none', stroke: ISO_INK[level],
         'stroke-width': level === 64 || level === 68 ? 1.7 : 1.1,
         'vector-effect': 'non-scaling-stroke',
         'class': 'ch-iso ch-iso--' + level
-      }, gIso);
+      };
+      /* model output draws dashed — an analysis is drawn firm */
+      if (g.fcst) attrs['stroke-dasharray'] = (6 * z) + ' ' + (4 * z);
+      el('path', attrs, gIso);
       /* label the longest chain, at points that are really over water */
       chains.sort(function (a, b) { return b.length - a.length; });
       var main = chains[0];
@@ -539,16 +547,16 @@
     }
     return RAMP[RAMP.length - 1][1];
   }
-  function buildTint() {
-    if (!sst) return;
-    var ng = sst.lons.length, nl = sst.lats.length;
-    tintC.width = ng; tintC.height = nl;
+  function buildTint(g, u) {
+    /* rasterize the upsampled field so the coarse forecast grid still
+       washes smoothly */
+    tintC.width = u.ng; tintC.height = u.nl;
     var tc = tintC.getContext('2d');
-    var img = tc.createImageData(ng, nl);
-    for (var i = 0; i < nl; i++) {
-      for (var j = 0; j < ng; j++) {
-        var f = sst.vf[i * ng + j];
-        var o = ((nl - 1 - i) * ng + j) * 4; /* row 0 = north */
+    var img = tc.createImageData(u.ng, u.nl);
+    for (var i = 0; i < u.nl; i++) {
+      for (var j = 0; j < u.ng; j++) {
+        var f = u.v[i * u.ng + j];
+        var o = ((u.nl - 1 - i) * u.ng + j) * 4; /* row 0 = north */
         if (isNaN(f)) { img.data[o + 3] = 0; continue; }
         var c = rampColor(f);
         img.data[o] = c[0]; img.data[o + 1] = c[1]; img.data[o + 2] = c[2];
@@ -558,8 +566,10 @@
     tc.putImageData(img, 0, 0);
   }
   function tintRect() {
-    /* screen rect of the grid extent (cell-centre grid, pad half a cell) */
-    var dlat = sst.lats[1] - sst.lats[0], dlon = sst.lons[1] - sst.lons[0];
+    /* screen rect of the grid extent (cell-centre grid, pad half an
+       upsampled cell) */
+    var F = upFactor(sst);
+    var dlat = (sst.lats[1] - sst.lats[0]) / F, dlon = (sst.lons[1] - sst.lons[0]) / F;
     var tl = worldToScreen(P(sst.lons[0] - dlon / 2, sst.lats[sst.lats.length - 1] + dlat / 2));
     var br = worldToScreen(P(sst.lons[sst.lons.length - 1] + dlon / 2, sst.lats[0] - dlat / 2));
     return [tl[0], tl[1], br[0] - tl[0], br[1] - tl[1]];
@@ -567,7 +577,7 @@
 
   /* ---------- wind field: Open-Meteo sampled offshore, drawn as drifting
      particles exactly like the sailing chart ---------- */
-  var wx = { samples: null, ids: [], hourLabel: null };
+  var wx = { samples: null, ids: [], times: null, nowI: 0, qual: 'now' };
   function windVector(spdKn, dirFrom) {
     var to = (dirFrom + 180) * Math.PI / 180;
     return [Math.sin(to) * spdKn, -Math.cos(to) * spdKn];
@@ -597,47 +607,80 @@
   var roseSpd = document.getElementById('rose-spd');
   var roseDir = document.getElementById('rose-dir');
 
+  /* one fetch covers the whole scrubber: ten past days through five days
+     out, hourly, so the wind layer follows whatever day the water shows */
   function loadWind() {
     var lats = D.windPts.map(function (p) { return p.lat; }).join(',');
     var lons = D.windPts.map(function (p) { return p.lon; }).join(',');
     var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lats + '&longitude=' + lons +
-      '&timezone=America%2FLos_Angeles&forecast_days=2&hourly=wind_speed_10m,wind_direction_10m' +
-      '&wind_speed_unit=kn';
+      '&timezone=America%2FLos_Angeles&past_days=10&forecast_days=6' +
+      '&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn';
     fetch(url).then(function (r) { return r.json(); }).then(function (res) {
       var arr = Array.isArray(res) ? res : [res];
-      var i = nowIdx(arr[0].hourly.time);
+      wx.times = arr[0].hourly.time;
+      wx.nowI = nowIdx(wx.times);
       wx.samples = {};
       wx.ids = [];
       D.windPts.forEach(function (p, k) {
         var h = (arr[k] || arr[0]).hourly;
-        if (h.wind_speed_10m[i] == null) return;
-        var vec = windVector(h.wind_speed_10m[i], h.wind_direction_10m[i]);
         wx.samples[p.id] = {
           world: P(p.lon, p.lat),
-          ws: h.wind_speed_10m[i], wd: h.wind_direction_10m[i],
-          u: vec[0], v: vec[1]
+          wsArr: h.wind_speed_10m, wdArr: h.wind_direction_10m,
+          ws: null, wd: null, u: 0, v: 0
         };
         wx.ids.push(p.id);
       });
-      /* rose: mean wind over the three grounds */
-      var su = 0, sv = 0, n = 0;
-      SPOT_IDS.forEach(function (id) {
-        var s = wx.samples[id];
-        if (s) { su += s.u; sv += s.v; n++; }
-      });
-      if (n && roseNeedle) {
-        var spd = Math.hypot(su / n, sv / n);
-        var toDeg = (Math.atan2(su / n, -(sv / n)) * 180 / Math.PI + 360) % 360;
-        var wd = (toDeg + 180) % 360;
-        roseNeedle.style.transform = 'rotate(' + ((wd + 180) % 360) + 'deg)';
-        roseSpd.textContent = Math.round(spd);
-        roseDir.textContent = compass16(wd);
-      }
-      buildWindArrows();
-      paintTable();
-      paintConditions();
+      setWindForGrid(sst);
       if (reduceMotion) tick(performance.now());
     }).catch(function () { /* the chart works without wind */ });
+  }
+
+  function applyWindIdx(i, qual) {
+    wx.qual = qual;
+    wx.ids.forEach(function (id) {
+      var s = wx.samples[id];
+      if (s.wsArr[i] == null) {
+        s.ws = null; s.wd = null; s.u = 0; s.v = 0;
+        return;
+      }
+      s.ws = s.wsArr[i];
+      s.wd = s.wdArr[i];
+      var vec = windVector(s.ws, s.wd);
+      s.u = vec[0];
+      s.v = vec[1];
+    });
+    /* rose: mean wind over the three grounds */
+    var su = 0, sv = 0, n = 0;
+    SPOT_IDS.forEach(function (id) {
+      var s = wx.samples[id];
+      if (s && s.ws != null) { su += s.u; sv += s.v; n++; }
+    });
+    if (n && roseNeedle) {
+      var spd = Math.hypot(su / n, sv / n);
+      var toDeg = (Math.atan2(su / n, -(sv / n)) * 180 / Math.PI + 360) % 360;
+      var wd = (toDeg + 180) % 360;
+      roseNeedle.style.transform = 'rotate(' + ((wd + 180) % 360) + 'deg)';
+      roseSpd.textContent = Math.round(spd);
+      roseDir.textContent = compass16(wd);
+    }
+    buildWindArrows();
+    paintTable();
+    paintConditions();
+  }
+
+  /* which hour matches the day on the chart: current conditions when the
+     chart shows the latest analysis or today, that day's midday otherwise */
+  function setWindForGrid(g) {
+    if (!wx.samples) return;
+    var i = wx.nowI, qual = 'now';
+    if (g && g.date && !(g.date === latestNoaaDate) && g.date !== laToday()) {
+      var mi = wx.times.indexOf(g.date + 'T12:00');
+      if (mi >= 0) {
+        i = mi;
+        qual = 'midday ' + fmtDay(g.date);
+      }
+    }
+    applyWindIdx(i, qual);
   }
 
   /* small wind arrows at the harbor and each spot */
@@ -647,7 +690,7 @@
     var z = zoomOf(vb);
     ['harbor'].concat(SPOT_IDS).forEach(function (id) {
       var s = wx.samples[id];
-      if (!s) return;
+      if (!s || s.ws == null) return;
       var w = id === 'harbor' ? harborW : pOf(D.spots[id]);
       var g = el('g', { 'class': 'ch-mwind' }, gMarkWind);
       var rot = el('g', {}, g);
@@ -754,22 +797,61 @@
     hideTip();
   });
 
-  /* ---------- analysis-day scrubber ---------- */
+  /* ---------- day scrubber: NOAA analyses back, model days forward ---------- */
   var MAXBACK = 7;
   function fmtDay(iso) {
     var p = iso.split('-');
     var wd = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay();
     return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][wd] + ' ' + (+p[1]) + '/' + (+p[2]);
   }
+  function addDays(iso, n) {
+    var p = iso.split('-');
+    return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]) + n * 86400000).toISOString().slice(0, 10);
+  }
+  function laToday() {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(new Date());
+  }
   var creditDate = document.getElementById('fish-credit-date');
+  var creditSrc = document.getElementById('fish-credit-src');
+
+  /* one slider across the whole story: 8 NOAA analysis days back, then the
+     ocean model bridging the analysis lag and running five days out */
+  var timeline = [];
+  for (var tb = MAXBACK; tb >= 0; tb--) timeline.push({ kind: 'noaa', back: tb });
+  var latestNoaaDate = null;
+  function extendTimeline(latestDate) {
+    if (latestNoaaDate) return;
+    latestNoaaDate = latestDate;
+    var d = addDays(latestDate, 1), end = addDays(laToday(), 5);
+    while (d <= end) {
+      timeline.push({ kind: 'model', date: d });
+      d = addDays(d, 1);
+    }
+    dayScrub.max = timeline.length - 1;
+  }
+
+  function labelFor(g) {
+    if (!g || !g.date) return '—';
+    if (!g.fcst) return 'analysis ' + fmtDay(g.date);
+    return (g.date > laToday() ? 'forecast ' : 'model ') + fmtDay(g.date);
+  }
   function activateGrid(g) {
     sst = g;
-    buildTint();
-    drawIso();
+    var u = upsample(g, upFactor(g));
+    buildTint(g, u);
+    drawIso(g, u);
+    setWindForGrid(g);
     paintConditions();
     paintTable();
-    dayLabel.textContent = g.date ? fmtDay(g.date) : '—';
-    if (creditDate) creditDate.textContent = g.date ? ' · analysis ' + fmtDay(g.date) : '';
+    dayLabel.textContent = labelFor(g);
+    if (creditSrc) {
+      creditSrc.textContent = g.fcst
+        ? 'SST forecast · Open-Meteo marine / MeteoFrance ocean model'
+        : 'NOAA Geo-Polar blended 5 km SST';
+    }
+    if (creditDate) creditDate.textContent = g.date ? ' · ' + fmtDay(g.date) : '';
     if (reduceMotion) tick(performance.now());
   }
   /* be a polite guest on NOAA's server: besides the in-memory cache, keep
@@ -796,6 +878,7 @@
     if (stored) {
       var cached = parseGrid(stored);
       sstCache[back] = cached;
+      if (back === 0 && cached.date) extendTimeline(cached.date);
       activateGrid(cached);
       return;
     }
@@ -806,26 +889,113 @@
           condEl.innerHTML = '<span class="muted">NOAA’s SST server isn’t answering right now ' +
             '— the chart still works; the temperature layer will return when it does.</span>';
         }
-        dayLabel.textContent = sst && sst.date ? fmtDay(sst.date) : '—';
+        dayLabel.textContent = labelFor(sst);
         return;
       }
       var g = parseGrid(data);
       sstCache[back] = g;
       lsPut(back, data);
+      if (back === 0 && g.date) extendTimeline(g.date);
       /* only show it if the scrubber still points at this day */
-      if (MAXBACK - dayScrub.valueAsNumber === back) activateGrid(g);
+      var cur = timeline[dayScrub.valueAsNumber];
+      if (cur && cur.kind === 'noaa' && cur.back === back) activateGrid(g);
     });
   }
-  dayScrub.addEventListener('input', function () {
-    loadDay(MAXBACK - dayScrub.valueAsNumber);
-  });
+
+  /* ---------- forward days: Open-Meteo marine SST (MeteoFrance ocean model)
+     — one 6-hourly batch over a 0.25° grid, noon value per day, cached in
+     localStorage for the rest of the day like the analyses ---------- */
+  var MG = { lat0: 32.75, dlat: 0.25, nlat: 9, lon0: -121.35, dlon: 0.25, nlon: 13 };
+  var marinePromise = null;
+  function loadMarine() {
+    if (marinePromise) return marinePromise;
+    var stored = null;
+    try {
+      var raw = localStorage.getItem('fishsstf');
+      if (raw) {
+        var obj = JSON.parse(raw);
+        if (obj.d === utcToday()) stored = obj.g;
+      }
+    } catch (e) {}
+    if (stored) {
+      marinePromise = Promise.resolve(stored);
+      return marinePromise;
+    }
+    var lats = [], lons = [];
+    for (var a = 0; a < MG.nlat; a++) {
+      for (var b = 0; b < MG.nlon; b++) {
+        lats.push((MG.lat0 + a * MG.dlat).toFixed(2));
+        lons.push((MG.lon0 + b * MG.dlon).toFixed(2));
+      }
+    }
+    var url = 'https://marine-api.open-meteo.com/v1/marine?latitude=' + lats.join(',') +
+      '&longitude=' + lons.join(',') +
+      '&hourly=sea_surface_temperature&temperature_unit=fahrenheit' +
+      '&timezone=America%2FLos_Angeles&past_days=5&forecast_days=6' +
+      '&temporal_resolution=hourly_6&cell_selection=sea';
+    marinePromise = fetch(url).then(function (r) { return r.json(); }).then(function (res) {
+      var arr = Array.isArray(res) ? res : [res];
+      var times = arr[0].hourly.time;
+      var inC = /C/.test((arr[0].hourly_units || {}).sea_surface_temperature || '°F');
+      var byDate = {};
+      times.forEach(function (t, i) {
+        if (t.slice(11) !== '12:00') return;
+        byDate[t.slice(0, 10)] = arr.map(function (loc) {
+          var v = loc.hourly.sea_surface_temperature[i];
+          if (v == null) return null;
+          if (inC) v = v * 1.8 + 32;
+          return Math.round(v * 10) / 10;
+        });
+      });
+      try {
+        localStorage.setItem('fishsstf', JSON.stringify({ d: utcToday(), g: byDate }));
+      } catch (e) {}
+      return byDate;
+    });
+    marinePromise.catch(function () { marinePromise = null; }); /* allow a retry */
+    return marinePromise;
+  }
+  function marineGrid(date, byDate) {
+    var vals = byDate[date];
+    if (!vals) return null;
+    var lats = [], lons = [];
+    for (var a = 0; a < MG.nlat; a++) lats.push(MG.lat0 + a * MG.dlat);
+    for (var b = 0; b < MG.nlon; b++) lons.push(MG.lon0 + b * MG.dlon);
+    var v = new Float64Array(vals.length);
+    for (var k = 0; k < vals.length; k++) v[k] = vals[k] == null ? NaN : vals[k];
+    return finishGrid(lats, lons, v, date, true);
+  }
+  function loadModelDay(date) {
+    var key = 'm' + date;
+    if (sstCache[key]) { activateGrid(sstCache[key]); return; }
+    dayLabel.textContent = 'loading…';
+    loadMarine().then(function (byDate) {
+      var g = marineGrid(date, byDate);
+      if (!g) throw new Error('no data for ' + date);
+      sstCache[key] = g;
+      var cur = timeline[dayScrub.valueAsNumber];
+      if (cur && cur.kind === 'model' && cur.date === date) activateGrid(g);
+    }).catch(function () {
+      dayLabel.textContent = labelFor(sst);
+      condEl.innerHTML = '<span class="muted">The forecast model isn’t answering right now — ' +
+        'the analysis days still work; try forward again in a bit.</span>';
+    });
+  }
+
+  function onScrub() {
+    var t = timeline[dayScrub.valueAsNumber];
+    if (!t) return;
+    if (t.kind === 'noaa') loadDay(t.back);
+    else loadModelDay(t.date);
+  }
+  dayScrub.addEventListener('input', onScrub);
   backBtn.addEventListener('click', function () {
     dayScrub.value = Math.max(0, dayScrub.valueAsNumber - 1);
-    loadDay(MAXBACK - dayScrub.valueAsNumber);
+    onScrub();
   });
   fwdBtn.addEventListener('click', function () {
-    dayScrub.value = Math.min(MAXBACK, dayScrub.valueAsNumber + 1);
-    loadDay(MAXBACK - dayScrub.valueAsNumber);
+    dayScrub.value = Math.min(+dayScrub.max, dayScrub.valueAsNumber + 1);
+    onScrub();
   });
 
   /* ---------- conditions strip + options table ---------- */
@@ -835,18 +1005,17 @@
     parts.push('<span>chart water <b>' + sst.min.toFixed(0) + '–' + sst.max.toFixed(0) +
       ' °F</b></span>');
     parts.push('<span>the zone: <b>64–68 °F</b> over structure, fish the cool side</span>');
-    var s = wx.samples && wx.samples.flats;
-    if (s) {
+    if (wx.samples) {
       var su = 0, sv = 0, n = 0;
       SPOT_IDS.forEach(function (id) {
         var q = wx.samples[id];
-        if (q) { su += q.u; sv += q.v; n++; }
+        if (q && q.ws != null) { su += q.u; sv += q.v; n++; }
       });
       if (n) {
         var spd = Math.hypot(su / n, sv / n);
         var toDeg = (Math.atan2(su / n, -(sv / n)) * 180 / Math.PI + 360) % 360;
-        parts.push('<span>wind on the grounds now <b>' + Math.round(spd) + ' kn</b> from ' +
-          compass16((toDeg + 180) % 360) + '</span>');
+        parts.push('<span>wind on the grounds ' + wx.qual + ' <b>' + Math.round(spd) +
+          ' kn</b> from ' + compass16((toDeg + 180) % 360) + '</span>');
       }
     }
     condEl.innerHTML = parts.join('<span class="sail-dot">·</span>');
@@ -865,7 +1034,8 @@
         '</td><td>' + Math.round(distNm(w)) + ' nm</td><td>' +
         String(brgMag(w)).padStart(3, '0') + '°M</td><td>' +
         (t == null ? '—' : '<b>' + t.toFixed(1) + '°</b>') + '</td><td>' +
-        (s ? Math.round(s.ws) + ' kn <span class="muted">' + compass16(s.wd) + '</span>' : '—') +
+        (s && s.ws != null
+          ? Math.round(s.ws) + ' kn <span class="muted">' + compass16(s.wd) + '</span>' : '—') +
         '</td></tr>';
     });
     tableEl.innerHTML = '<table class="sail-table"><thead><tr><th></th><th>spot</th>' +
@@ -889,8 +1059,8 @@
     resizeT = setTimeout(function () {
       resizeCanvas();
       fitView();
-      drawIso();
-      buildWindArrows();
+      if (sst) activateGrid(sst);
+      else buildWindArrows();
       if (reduceMotion) tick(performance.now());
     }, 150);
   });

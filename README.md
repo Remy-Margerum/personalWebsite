@@ -15,7 +15,8 @@ vietnam/                "Northern Vietnam by Motorcycle" article
 sailing/                Live SBYC course chart with per-mark wind forecast
 cycling/                SB100 training feed
 fishing/                Bluefin SST chart — NOAA Geo-Polar 5 km sea-surface
-                        temperature over the Channel Islands, wind overlay
+                        temperature over the Channel Islands, wind overlay,
+                        Open-Meteo ocean-model forecast for the days ahead
 privacy-policy/         Privacy policy
 lottery/                CA Lottery EV — offline stub (not in nav; app lives in the
                         separate ca-scratchers repo, currently disabled)
