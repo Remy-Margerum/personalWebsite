@@ -787,6 +787,101 @@ h3 { font-size: 1.5rem; }
   .sail-models { flex-wrap: wrap; }
 }
 
+/* --------------------------------------------------------------------------
+   Fishing — bluefin SST chart (shares the sailing chart's ink)
+   -------------------------------------------------------------------------- */
+.fish-controls { justify-content: center; }
+.fish-controls .sail-control { flex: 0 1 30rem; }
+
+.fish-frame {
+  max-width: 56rem;
+  margin: 0 auto;
+  height: clamp(440px, 74vh, 660px);
+  cursor: crosshair;
+}
+
+/* isotherms — same colors as the printed chart in the write-up, muted for paper */
+.ch-iso {
+  fill: none;
+  stroke-width: 1.1;
+  opacity: .85;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.ch-iso--60 { stroke: #33517a; }
+.ch-iso--64 { stroke: #222222; stroke-width: 1.7; }
+.ch-iso--68 { stroke: #a03a2c; stroke-width: 1.7; }
+.ch-iso--72 { stroke: #c07b3a; }
+.ch-isolbl, .ch-ringlbl {
+  stroke: var(--paper);
+  stroke-width: .28em;
+  paint-order: stroke;
+  stroke-linejoin: round;
+}
+.ch-isolbl { letter-spacing: .04em; }
+.ch-isolbl--60 { fill: #33517a; }
+.ch-isolbl--64 { fill: #222222; }
+.ch-isolbl--68 { fill: #a03a2c; }
+.ch-isolbl--72 { fill: #c07b3a; }
+
+/* range rings from the harbor */
+.ch-ring { fill: none; stroke: #b6bfc9; stroke-width: 1; opacity: .9; vector-effect: non-scaling-stroke; }
+.ch-ringlbl { fill: #9aa4ae; font-style: italic; letter-spacing: .08em; }
+.ch-rock { stroke: var(--muted); stroke-width: 1.1; opacity: .8; vector-effect: non-scaling-stroke; }
+
+/* SST legend panel */
+.fish-legend {
+  position: absolute;
+  top: .9rem;
+  left: .9rem;
+  z-index: 2;
+  width: 176px;
+  background: rgba(255, 255, 255, .78);
+  border: 1px solid var(--line);
+  border-radius: 1px;
+  padding: .4rem .55rem .45rem;
+}
+.fish-legend-title {
+  font-size: .6rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: .3rem;
+}
+.fish-legend-bar {
+  height: 9px;
+  border: 1px solid var(--line);
+  background: linear-gradient(90deg,
+    rgba(70, 105, 140, .55),
+    rgba(96, 130, 152, .55) 27%,
+    rgba(150, 168, 163, .55) 43%,
+    rgba(196, 186, 152, .55) 53%,
+    rgba(210, 166, 116, .55) 63%,
+    rgba(198, 122, 82, .55) 77%,
+    rgba(172, 84, 58, .55));
+}
+.fish-legend-ticks {
+  position: relative;
+  height: .95rem;
+  font-size: .66rem;
+}
+.fish-legend-ticks span { position: absolute; transform: translateX(-50%); }
+.fish-legend-note {
+  font-size: .66rem;
+  font-style: italic;
+  color: var(--muted);
+  margin-top: .1rem;
+}
+
+.fish-notes { margin-top: 1.4rem; }
+.fish-notes p { margin-bottom: .8rem; font-size: .98rem; }
+
+@media (max-width: 700px) {
+  .fish-frame { height: clamp(400px, 108vw, 560px); }
+  .fish-legend { top: .7rem; left: .7rem; width: 150px; }
+}
+
 /* Utility */
 .center { text-align: center; }
 .mt-2 { margin-top: 2rem; }
