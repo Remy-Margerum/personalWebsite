@@ -1586,14 +1586,11 @@
       var age = (Date.now() - new Date(j.generated).getTime()) / 86400000;
       if (age > 4) return; /* stale briefs stay hidden */
       var wrap = document.getElementById('fish-brief');
-      if (!wrap) return;
-      document.getElementById('fish-brief-headline').textContent = j.headline || '';
-      document.getElementById('fish-brief-body').textContent = j.body;
-      var upd = document.getElementById('fish-brief-updated');
-      if (upd) {
-        upd.textContent = (j.weekend ? j.weekend + ' · ' : '') +
-          'drafted ' + fmtDay(j.generated.slice(0, 10));
-      }
+      var body = document.getElementById('fish-brief-body');
+      if (!wrap || !body) return;
+      body.textContent = j.body;
+      wrap.title = (j.weekend ? 'Weekend outlook ' + j.weekend + ' — ' : '') +
+        'AI-drafted ' + fmtDay(j.generated.slice(0, 10)) + ' from the forecasts on this page';
       wrap.hidden = false;
     }).catch(function () {});
   }

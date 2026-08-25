@@ -1064,7 +1064,7 @@ svg[data-view="structure"] .ch-isolbl { opacity: .45; }
    selected water day */
 .fish-wx {
   max-width: 56rem;
-  margin: 0 auto 1.2rem;
+  margin: 1.6rem auto 0;
   border: 1px solid var(--line);
   border-radius: 1px;
   background: var(--cream);
@@ -1111,19 +1111,18 @@ svg[data-view="structure"] .ch-isolbl { opacity: .45; }
   padding: .3rem 0 .1rem;
 }
 
-/* the daily AI weekend brief */
-.fish-brief { background: var(--paper); }
-.fish-brief-tag {
-  font-size: .6rem;
-  letter-spacing: .14em;
-  text-transform: uppercase;
+/* the daily AI weekend brief — an italic note under the title, like the
+   cycling page's event note */
+.fish-header { margin-bottom: 1rem; }
+.fish-brief {
+  font-style: italic;
   color: var(--muted);
-  border: 1px solid var(--line);
-  border-radius: 1px;
-  padding: .1rem .4rem;
+  text-align: center;
+  max-width: var(--measure);
+  margin: 0 auto 1.9rem;
+  font-size: 1.05rem;
 }
-.fish-brief-headline { font-size: 1.12rem; color: var(--black); margin-bottom: .35rem; }
-.fish-brief-body { font-size: .97rem; }
+.fish-brief-sig { color: var(--brown); white-space: nowrap; }
 .fish-wx-day { padding: .34rem 0; border-top: 1px solid var(--line); }
 .fish-wx-day b { color: var(--black); }
 .fish-wx-night { color: var(--muted); font-size: .9em; }
