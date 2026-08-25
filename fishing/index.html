@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
   <!-- versioned so a CDN-cached pre-fishing stylesheet can never pair with this page -->
-  <link rel="stylesheet" href="/assets/css/style.css?v=7">
+  <link rel="stylesheet" href="/assets/css/style.css?v=8">
   <script src="/assets/js/fishing-data.js" defer></script>
   <script src="/assets/js/fishing.js" defer></script>
 </head>
@@ -77,6 +77,19 @@
         </div>
       </div>
 
+      <div class="fish-wx fish-brief" id="fish-brief" hidden>
+        <div class="fish-wx-head">
+          <span class="fish-wx-title">Weekend outlook</span>
+          <span class="fish-brief-tag">AI-drafted</span>
+          <span class="fish-wx-updated" id="fish-brief-updated"></span>
+        </div>
+        <p class="fish-brief-headline" id="fish-brief-headline"></p>
+        <p class="fish-brief-body" id="fish-brief-body"></p>
+        <p class="fish-wx-fine">Drafted each morning by Claude from the NWS and ocean-model
+        forecasts below &mdash; a starting point, not a forecast of record; verify conditions
+        before you go.</p>
+      </div>
+
       <div class="fish-wx" id="fish-wx" hidden>
         <div class="fish-wx-head">
           <span class="fish-wx-title">Offshore weather</span>
@@ -88,7 +101,8 @@
         <div id="fish-wx-days"></div>
         <p class="fish-wx-fine">NWS Los Angeles/Oxnard
         <a href="https://forecast.weather.gov/MapClick.php?zoneid=PZZ650" target="_blank" rel="noopener">coastal waters forecast</a>
-        &middot; four days from the selected water day</p>
+        &middot; four days from the selected water day, extended past the NWS text with an
+        Open-Meteo model outlook (lower confidence)</p>
       </div>
 
       <div class="sail-frame fish-frame" id="fish-frame">

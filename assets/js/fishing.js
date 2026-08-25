@@ -807,7 +807,7 @@
     var lats = D.windPts.map(function (p) { return p.lat; }).join(',');
     var lons = D.windPts.map(function (p) { return p.lon; }).join(',');
     var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lats + '&longitude=' + lons +
-      '&timezone=America%2FLos_Angeles&past_days=10&forecast_days=6' +
+      '&timezone=America%2FLos_Angeles&past_days=10&forecast_days=16' +
       '&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn';
     fetch(url).then(function (r) { return r.json(); }).then(function (res) {
       var arr = Array.isArray(res) ? res : [res];
@@ -1188,7 +1188,7 @@
   function extendTimeline(latestDate) {
     if (latestNoaaDate) return;
     latestNoaaDate = latestDate;
-    var d = addDays(latestDate, 1), end = addDays(laToday(), 5);
+    var d = addDays(latestDate, 1), end = addDays(laToday(), 7);
     while (d <= end) {
       timeline.push({ kind: 'model', date: d });
       d = addDays(d, 1);
@@ -1298,7 +1298,7 @@
     var url = 'https://marine-api.open-meteo.com/v1/marine?latitude=' + lats.join(',') +
       '&longitude=' + lons.join(',') +
       '&hourly=sea_surface_temperature&temperature_unit=fahrenheit' +
-      '&timezone=America%2FLos_Angeles&past_days=5&forecast_days=6' +
+      '&timezone=America%2FLos_Angeles&past_days=5&forecast_days=8' +
       '&temporal_resolution=hourly_6&cell_selection=sea';
     marinePromise = fetch(url).then(function (r) { return r.json(); }).then(function (res) {
       var arr = Array.isArray(res) ? res : [res];
@@ -1376,6 +1376,9 @@
     if (gw) {
       parts.push('<span>wind on the grounds ' + wx.qual + ' <b>' + Math.round(gw.ws) +
         ' kn</b> from ' + compass16(gw.wd) + '</span>');
+    }
+    if (sst.fcst && sst.date > addDays(laToday(), 4)) {
+      parts.push('<span class="muted">far-out ocean model — guidance only</span>');
     }
     condEl.innerHTML = parts.join('<span class="sail-dot">·</span>');
   }
@@ -1502,22 +1505,99 @@
     (periods.headlines || []).forEach(function (h) {
       html += '<div class="fish-wx-alert">' + esc(h) + '</div>';
     });
-    order.forEach(function (d) {
-      var e = byDay[d];
-      html += '<div class="fish-wx-day"><b>' + fmtDay(d) + '</b> — ' +
-        (e.day ? esc(e.day.text) : '') +
-        (e.night ? ' <span class="fish-wx-night">' + (e.day ? 'Night: ' : '(night) ') +
-          esc(e.night.text) + '</span>' : '') +
-        '</div>';
-    });
-    if (!html) {
-      html = '<div class="fish-wx-day muted">The selected day is beyond the zone forecast, ' +
-        'which runs about five days out.</div>';
+    /* every windowed day gets a row: NWS text where it reaches, a model
+       outlook (Open-Meteo wind + waves) beyond its ~5-day horizon */
+    for (var dd = base; dd <= end; dd = addDays(dd, 1)) {
+      var e = byDay[dd];
+      if (e) {
+        html += '<div class="fish-wx-day"><b>' + fmtDay(dd) + '</b> — ' +
+          (e.day ? esc(e.day.text) : '') +
+          (e.night ? ' <span class="fish-wx-night">' + (e.day ? 'Night: ' : '(night) ') +
+            esc(e.night.text) + '</span>' : '') +
+          '</div>';
+      } else {
+        var o = modelOutlook(dd);
+        html += '<div class="fish-wx-day"><b>' + fmtDay(dd) + '</b> — ' +
+          (o || '<span class="muted">beyond the forecast models’ reach</span>') +
+          '</div>';
+      }
     }
     daysEl.innerHTML = html;
     if (noteEl) noteEl.textContent = note;
     wrap.hidden = false;
   }
+  /* model outlook for days past the NWS text: wind at the zone's
+     representative point plus midday wave height */
+  var waves = null;
+  function loadWaves() {
+    try {
+      var raw = localStorage.getItem('fishwaves');
+      if (raw) {
+        var o = JSON.parse(raw);
+        if (o.d === utcToday()) { waves = o.w; return; }
+      }
+    } catch (e) {}
+    var url = 'https://marine-api.open-meteo.com/v1/marine?latitude=34.15,33.80' +
+      '&longitude=-119.85,-120.15&hourly=wave_height&length_unit=imperial' +
+      '&timezone=America%2FLos_Angeles&forecast_days=8&temporal_resolution=hourly_6' +
+      '&cell_selection=sea';
+    fetch(url).then(function (r) { return r.json(); }).then(function (res) {
+      var arr = Array.isArray(res) ? res : [res];
+      var out = { PZZ650: {}, PZZ673: {} };
+      ['PZZ650', 'PZZ673'].forEach(function (z, k) {
+        var h = (arr[k] || arr[0]).hourly;
+        h.time.forEach(function (t, i) {
+          if (t.slice(11) === '12:00' && h.wave_height[i] != null) {
+            out[z][t.slice(0, 10)] = h.wave_height[i];
+          }
+        });
+      });
+      waves = out;
+      try {
+        localStorage.setItem('fishwaves', JSON.stringify({ d: utcToday(), w: out }));
+      } catch (e) {}
+      paintWx();
+    }).catch(function () {});
+  }
+  function modelOutlook(date) {
+    var bits = [];
+    var repId = wxZone === 'PZZ673' ? 'flats' : 'midchannel';
+    if (wx.samples && wx.samples[repId] && wx.times) {
+      var i = wx.times.indexOf(date + 'T15:00');
+      var s = wx.samples[repId];
+      if (i >= 0 && s.wsArr[i] != null) {
+        bits.push('wind ' + Math.round(s.wsArr[i]) + ' kn ' +
+          compass16(s.wdArr[i]) + ' in the afternoon');
+      }
+    }
+    var wv = waves && waves[wxZone] && waves[wxZone][date];
+    if (wv != null) bits.push('seas about ' + Math.round(wv) + ' ft');
+    if (!bits.length) return null;
+    return 'model outlook: ' + bits.join(' · ') +
+      ' <span class="muted">— beyond the NWS zone text, lower confidence</span>';
+  }
+
+  /* ---------- daily AI weekend brief (written by a scheduled action) ---------- */
+  function loadBrief() {
+    fetch('/assets/data/fishing-brief.json').then(function (r) {
+      return r.ok ? r.json() : null;
+    }).then(function (j) {
+      if (!j || !j.generated || !j.body) return;
+      var age = (Date.now() - new Date(j.generated).getTime()) / 86400000;
+      if (age > 4) return; /* stale briefs stay hidden */
+      var wrap = document.getElementById('fish-brief');
+      if (!wrap) return;
+      document.getElementById('fish-brief-headline').textContent = j.headline || '';
+      document.getElementById('fish-brief-body').textContent = j.body;
+      var upd = document.getElementById('fish-brief-updated');
+      if (upd) {
+        upd.textContent = (j.weekend ? j.weekend + ' · ' : '') +
+          'drafted ' + fmtDay(j.generated.slice(0, 10));
+      }
+      wrap.hidden = false;
+    }).catch(function () {});
+  }
+
   function loadWx() {
     fetch('https://api.weather.gov/products/types/CWF/locations/LOX/latest')
       .then(function (r) { return r.json(); })
@@ -1593,6 +1673,8 @@
     loadDay(0);
     loadWind();
     loadWx();
+    loadWaves();
+    loadBrief();
     loadBoat();
     setInterval(loadBoat, 60000);
     if (!reduceMotion) requestAnimationFrame(tick);
