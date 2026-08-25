@@ -99,7 +99,8 @@ The fishing page (`assets/js/fishing.js`, same MIT terms as the sailing
 chart code) also shows the **NWS Los Angeles/Oxnard coastal waters
 forecast** (api.weather.gov CWF product, public domain) as its offshore
 weather panel, and draws the Channel Islands National Marine Sanctuary
-and state/federal MPA boundaries from OSM (ODbL, indicative only). Its
+boundary (OSM-derived, ODbL) with state/federal MPA and special-closure
+polygons from the official CDFW ds582 dataset (still indicative only). Its
 main overlay source is **sea-surface temperature** from the
 NOAA/NESDIS Geo-Polar Blended 5 km analysis, fetched in the browser from
 NOAA CoastWatch ERDDAP (`noaacwBLENDEDsstDNDaily`) via JSONP — the ERDDAP

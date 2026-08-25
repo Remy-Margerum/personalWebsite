@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
   <!-- versioned so a CDN-cached pre-fishing stylesheet can never pair with this page -->
-  <link rel="stylesheet" href="/assets/css/style.css?v=6">
+  <link rel="stylesheet" href="/assets/css/style.css?v=7">
   <script src="/assets/js/fishing-data.js" defer></script>
   <script src="/assets/js/fishing.js" defer></script>
 </head>
@@ -103,7 +103,6 @@
             <span style="left:60%;color:#a03a2c">68</span>
             <span style="left:73%;color:#c07b3a">72</span>
           </div>
-          <div class="fish-legend-note">64&ndash;68 is the zone &mdash; fish the break</div>
         </div>
         <div class="sail-rose" aria-hidden="true">
           <svg viewBox="0 0 84 84">
@@ -122,7 +121,7 @@
             <text x="42" y="70" class="rose-dirlbl" id="rose-dir"></text>
           </svg>
         </div>
-        <div class="sail-tooltip" id="fish-tooltip"></div>
+        <div class="sail-tooltip fish-readout" id="fish-tooltip"></div>
         <button type="button" class="sail-wed fish-reset" id="fish-reset" style="display:none">&#8634; reset view</button>
         <span class="sail-credit"><span id="fish-credit-src">NOAA Geo-Polar blended 5 km SST</span><span id="fish-credit-date"></span></span>
       </div>
@@ -148,15 +147,19 @@
         past the latest analysis: forward days switch to an ocean-model forecast, drawn with dashed
         isotherms &mdash; coarser than the 5&nbsp;km analysis, so trust the break&rsquo;s trend more
         than its exact position. The wind layer follows the day you pick. The dash-dot line is the
-        Channel Islands National Marine Sanctuary boundary and the violet patches are state and
-        federal MPAs (zoom in for their names) &mdash; boundaries, depths, and spot marks are all
-        indicative, so verify against official charts and the current CDFW regulations before you
-        go. A chart for planning, not navigation.</p>
+        Channel Islands National Marine Sanctuary boundary and the violet patches are the official
+        CDFW/federal MPA boundaries &mdash; solid for no-take reserves, dashed for conservation
+        areas, darkest for special closures (zoom in for names; the troll lines and spot marks are
+        drawn to stay outside the no-take zones, including the Santa Barbara Island reserve that
+        covers Osborn Bank&rsquo;s crown). Boundaries, depths, and spot marks are still indicative
+        &mdash; verify against official charts and current CDFW regulations before you go. A chart
+        for planning, not navigation.</p>
         <p class="sail-fine muted">SST analyses: <a href="https://coastwatch.noaa.gov/erddap/griddap/noaacwBLENDEDsstDNDaily.html" target="_blank" rel="noopener">NOAA/NESDIS Geo-Polar Blended 5&nbsp;km analysis</a>,
         served by NOAA CoastWatch ERDDAP (public open data, courtesy of NOAA) &middot; SST forecast and wind by
         <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC&nbsp;BY&nbsp;4.0;
         sea-surface forecast from the M&eacute;t&eacute;o-France global ocean model)
         &middot; Depths and contours from the <a href="https://www.gmrt.org/" target="_blank" rel="noopener">GMRT synthesis</a> (Ryan et&nbsp;al. 2009)
+        &middot; MPA boundaries from <a href="https://data.ca.gov/dataset/california-marine-protected-areas-ds582" target="_blank" rel="noopener">CDFW ds582</a>
         &middot; Shoreline &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
         &middot; Spot notes draw on Salt Water Sportsman, BDOutdoors, and Noozhawk&rsquo;s Captain&rsquo;s Log.</p>
       </div>
