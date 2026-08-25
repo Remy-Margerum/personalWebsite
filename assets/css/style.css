@@ -193,7 +193,13 @@ h3 { font-size: 1.5rem; }
 .nav-group:focus-within .nav-drop,
 .nav-group.open .nav-drop { display: block; }
 .nav-drop a { display: block; padding: .5rem 1.2rem; }
-.nav-drop a[aria-current="page"] { border-bottom: none; color: var(--brown); }
+/* keep every row the same height — the underline style's 2px padding-bottom
+   was shrinking the current page's row */
+.nav-drop a[aria-current="page"] {
+  border-bottom: none;
+  color: var(--brown);
+  padding-bottom: .5rem;
+}
 
 .nav-toggle {
   display: none;

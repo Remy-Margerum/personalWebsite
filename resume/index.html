@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/style.css?v=4">
+  <link rel="stylesheet" href="/assets/css/style.css?v=5">
 </head>
 <body>
 
@@ -27,8 +27,13 @@
     <nav class="site-nav" id="site-nav">
       <ul>
         <li><a href="/">Home</a></li>
-        <li><a href="/academic-work/">Academic Work</a></li>
-        <li><a href="/resume/" aria-current="page">R&eacute;sum&eacute;</a></li>
+        <li class="nav-group is-current">
+          <button class="nav-group-btn" type="button" aria-haspopup="true" aria-expanded="false">Professional Work<span class="nav-caret" aria-hidden="true"></span></button>
+          <ul class="nav-drop">
+            <li><a href="/academic-work/">Academic Work</a></li>
+            <li><a href="/resume/" aria-current="page">R&eacute;sum&eacute;</a></li>
+          </ul>
+        </li>
         <li class="nav-group">
           <button class="nav-group-btn" type="button" aria-haspopup="true" aria-expanded="false">Activities<span class="nav-caret" aria-hidden="true"></span></button>
           <ul class="nav-drop">
