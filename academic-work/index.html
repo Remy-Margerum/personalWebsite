@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/style.css">
+  <link rel="stylesheet" href="/assets/css/style.css?v=2">
   <script src="/assets/js/pdf-viewer.js" defer></script>
 </head>
 <body>
@@ -30,7 +30,14 @@
         <li><a href="/">Home</a></li>
         <li><a href="/academic-work/" aria-current="page">Academic Work</a></li>
         <li><a href="/resume/">R&eacute;sum&eacute;</a></li>
-        <li><a href="/sailing/">Sailing</a></li>
+        <li class="nav-group">
+          <button class="nav-group-btn" type="button" aria-haspopup="true" aria-expanded="false">Activities<span class="nav-caret" aria-hidden="true"></span></button>
+          <ul class="nav-drop">
+            <li><a href="/sailing/">Sailing</a></li>
+            <li><a href="/cycling/">Cycling</a></li>
+            <li><a href="/fishing/">Fishing</a></li>
+          </ul>
+        </li>
         <li><a href="/contact-me/">Contact</a></li>
       </ul>
     </nav>
@@ -114,6 +121,8 @@
           <li><a href="/academic-work/">Academic Work</a></li>
           <li><a href="/resume/">R&eacute;sum&eacute;</a></li>
           <li><a href="/sailing/">Sailing</a></li>
+          <li><a href="/cycling/">Cycling</a></li>
+          <li><a href="/fishing/">Fishing</a></li>
           <li><a href="/contact-me/">Contact Me</a></li>
           <li><a href="/privacy-policy/">Privacy Policy</a></li>
         </ul>
@@ -136,15 +145,7 @@
   </div>
 </footer>
 
-<script>
-  (function () {
-    var t = document.querySelector('.nav-toggle'), n = document.getElementById('site-nav');
-    t.addEventListener('click', function () {
-      var open = n.classList.toggle('open');
-      t.setAttribute('aria-expanded', open ? 'true' : 'false');
-    });
-  })();
-</script>
+<script src="/assets/js/nav.js" defer></script>
 
 </body>
 </html>
