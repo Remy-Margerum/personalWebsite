@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
   <!-- versioned so a CDN-cached pre-fishing stylesheet can never pair with this page -->
-  <link rel="stylesheet" href="/assets/css/style.css?v=8">
+  <link rel="stylesheet" href="/assets/css/style.css?v=9">
   <script src="/assets/js/fishing-data.js" defer></script>
   <script src="/assets/js/fishing.js" defer></script>
 </head>
@@ -55,10 +55,13 @@
 
   <section class="section section--tight">
     <div class="container">
-      <div class="article-header sail-header">
+      <div class="article-header sail-header fish-header">
         <span class="eyebrow">Off the Clock</span>
         <h1>Fishing</h1>
       </div>
+
+      <p class="fish-brief" id="fish-brief" hidden><span id="fish-brief-body"></span>
+      <span class="fish-brief-sig">&mdash;&nbsp;Claude</span></p>
 
       <div class="sail-controls fish-controls">
         <div class="sail-control fish-control--species">
@@ -75,34 +78,6 @@
           </div>
           <input type="range" id="fish-day" min="0" max="7" value="7" step="1" autocomplete="off">
         </div>
-      </div>
-
-      <div class="fish-wx fish-brief" id="fish-brief" hidden>
-        <div class="fish-wx-head">
-          <span class="fish-wx-title">Weekend outlook</span>
-          <span class="fish-brief-tag">AI-drafted</span>
-          <span class="fish-wx-updated" id="fish-brief-updated"></span>
-        </div>
-        <p class="fish-brief-headline" id="fish-brief-headline"></p>
-        <p class="fish-brief-body" id="fish-brief-body"></p>
-        <p class="fish-wx-fine">Drafted each morning by Claude from the NWS and ocean-model
-        forecasts below &mdash; a starting point, not a forecast of record; verify conditions
-        before you go.</p>
-      </div>
-
-      <div class="fish-wx" id="fish-wx" hidden>
-        <div class="fish-wx-head">
-          <span class="fish-wx-title">Offshore weather</span>
-          <span class="fish-wx-zones" id="fish-wx-zones"></span>
-          <span class="fish-wx-updated" id="fish-wx-updated"></span>
-        </div>
-        <p class="fish-wx-synopsis" id="fish-wx-synopsis"></p>
-        <p class="fish-wx-note muted" id="fish-wx-note"></p>
-        <div id="fish-wx-days"></div>
-        <p class="fish-wx-fine">NWS Los Angeles/Oxnard
-        <a href="https://forecast.weather.gov/MapClick.php?zoneid=PZZ650" target="_blank" rel="noopener">coastal waters forecast</a>
-        &middot; four days from the selected water day, extended past the NWS text with an
-        Open-Meteo model outlook (lower confidence)</p>
       </div>
 
       <div class="sail-frame fish-frame" id="fish-frame">
@@ -142,6 +117,21 @@
 
       <div class="sail-conditions" id="fish-conditions"><span class="muted">Fetching the water&hellip;</span></div>
 
+      <div class="fish-wx" id="fish-wx" hidden>
+        <div class="fish-wx-head">
+          <span class="fish-wx-title">Offshore weather</span>
+          <span class="fish-wx-zones" id="fish-wx-zones"></span>
+          <span class="fish-wx-updated" id="fish-wx-updated"></span>
+        </div>
+        <p class="fish-wx-synopsis" id="fish-wx-synopsis"></p>
+        <p class="fish-wx-note muted" id="fish-wx-note"></p>
+        <div id="fish-wx-days"></div>
+        <p class="fish-wx-fine">NWS Los Angeles/Oxnard
+        <a href="https://forecast.weather.gov/MapClick.php?zoneid=PZZ650" target="_blank" rel="noopener">coastal waters forecast</a>
+        &middot; four days from the selected water day, extended past the NWS text with an
+        Open-Meteo model outlook (lower confidence)</p>
+      </div>
+
       <div class="sail-details">
         <p class="sail-summary" id="fish-summary">Pacific bluefin are the cold-tolerant tuna &mdash;
         caught off California from the mid-50s into the low 70s &deg;F. The number that matters
@@ -152,7 +142,9 @@
 
         <div class="fish-notes" id="fish-notes"></div>
 
-        <p class="sail-fine muted">Hover the chart to read the water anywhere &mdash; temperature,
+        <p class="sail-fine muted">The italic note under the title is drafted each morning by
+        Claude from the forecasts on this page &mdash; a starting point, not a forecast of
+        record. Hover the chart to read the water anywhere &mdash; temperature,
         typical depth, range from the harbor, and whether you&rsquo;re inside an MPA. Scroll or
         pinch to zoom, drag to pan (one finger pans on a phone once you&rsquo;re zoomed in),
         double-click to zoom further, and the dashed rings are 20, 40, and 60 nm from the harbor
