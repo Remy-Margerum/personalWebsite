@@ -1,6 +1,6 @@
-/* Shared header behavior: the mobile hamburger and the Activities dropdown.
-   The dropdown opens on hover/focus via CSS; the click handling below is for
-   touch and for pinning it open. */
+/* Shared header behavior: the mobile hamburger and the nav dropdowns.
+   Dropdowns open on hover/focus via CSS; the click handling below is for
+   touch and for pinning one open. */
 (function () {
   var t = document.querySelector('.nav-toggle');
   var n = document.getElementById('site-nav');
@@ -10,21 +10,36 @@
       t.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
   }
-  var g = document.querySelector('.nav-group');
-  var b = document.querySelector('.nav-group-btn');
-  if (!g || !b) return;
-  function setOpen(open) {
+  var groups = document.querySelectorAll('.nav-group');
+  if (!groups.length) return;
+  function setOpen(g, open) {
     g.classList.toggle('open', open);
-    b.setAttribute('aria-expanded', open ? 'true' : 'false');
+    var b = g.querySelector('.nav-group-btn');
+    if (b) b.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
-  b.addEventListener('click', function (ev) {
-    setOpen(!g.classList.contains('open'));
-    ev.stopPropagation();
+  function closeAll(except) {
+    Array.prototype.forEach.call(groups, function (g) {
+      if (g !== except) setOpen(g, false);
+    });
+  }
+  Array.prototype.forEach.call(groups, function (g) {
+    var b = g.querySelector('.nav-group-btn');
+    if (!b) return;
+    b.addEventListener('click', function (ev) {
+      var open = !g.classList.contains('open');
+      closeAll(g);
+      setOpen(g, open);
+      ev.stopPropagation();
+    });
   });
   document.addEventListener('click', function (ev) {
-    if (g.classList.contains('open') && !g.contains(ev.target)) setOpen(false);
+    var inside = false;
+    Array.prototype.forEach.call(groups, function (g) {
+      if (g.contains(ev.target)) inside = true;
+    });
+    if (!inside) closeAll(null);
   });
   document.addEventListener('keydown', function (ev) {
-    if (ev.key === 'Escape' && g.classList.contains('open')) setOpen(false);
+    if (ev.key === 'Escape') closeAll(null);
   });
 })();
