@@ -98,6 +98,9 @@ chart code) adds one more source: **sea-surface temperature** from the
 NOAA/NESDIS Geo-Polar Blended 5 km analysis, fetched in the browser from
 NOAA CoastWatch ERDDAP (`noaacwBLENDEDsstDNDaily`) via JSONP — the ERDDAP
 server doesn't send CORS headers, but its JSONP support works from a
-static page. US-government open data, credited on the page. Its shoreline
+static page. US-government open data, credited on the page. Load on NOAA
+is kept minimal: one small subset request per analysis day viewed (no
+polling loop), cached in memory and in localStorage for the rest of the
+day. Its shoreline
 in `fishing-data.js` is OSM-derived and remains subject to ODbL; wind is
 Open-Meteo, as above.

@@ -80,9 +80,12 @@
 
   /* range rings from the harbor mouth — 20 / 40 / 60 nm */
   var ringLbls = [];
+  /* fill="none" attributes double the stylesheet rules: if a stale cached
+     CSS ever loads with this page, the chart degrades to plain lines
+     instead of black-filled shapes */
   [20, 40, 60].forEach(function (nm) {
     var r = nm * WORLD_PER_NM;
-    el('circle', { cx: harborW[0], cy: harborW[1], r: r, 'class': 'ch-ring' }, gWater);
+    el('circle', { cx: harborW[0], cy: harborW[1], r: r, fill: 'none', stroke: '#b6bfc9', 'class': 'ch-ring' }, gWater);
     var az = 170 * Math.PI / 180; /* labels run down between the islands, over open water */
     var t = el('text', {
       x: harborW[0] + r * Math.sin(az), y: harborW[1] - r * Math.cos(az),
@@ -131,7 +134,7 @@
   el('path', {
     d: 'M' + (beggW[0] - 4) + ' ' + beggW[1] + 'H' + (beggW[0] + 4) +
        'M' + beggW[0] + ' ' + (beggW[1] - 4) + 'V' + (beggW[1] + 4),
-    'class': 'ch-rock'
+    fill: 'none', 'class': 'ch-rock'
   }, gGeoLabels);
 
   /* ---------- harbor origin + fishing spots ---------- */
@@ -489,7 +492,13 @@
           d += (i ? 'L' : 'M') + w[0].toFixed(1) + ' ' + w[1].toFixed(1);
         });
       });
-      el('path', { d: d, 'class': 'ch-iso ch-iso--' + level }, gIso);
+      var ISO_INK = { 60: '#33517a', 64: '#222222', 68: '#a03a2c', 72: '#c07b3a' };
+      el('path', {
+        d: d, fill: 'none', stroke: ISO_INK[level],
+        'stroke-width': level === 64 || level === 68 ? 1.7 : 1.1,
+        'vector-effect': 'non-scaling-stroke',
+        'class': 'ch-iso ch-iso--' + level
+      }, gIso);
       /* label the longest chain, at points that are really over water */
       chains.sort(function (a, b) { return b.length - a.length; });
       var main = chains[0];
@@ -763,8 +772,33 @@
     if (creditDate) creditDate.textContent = g.date ? ' · analysis ' + fmtDay(g.date) : '';
     if (reduceMotion) tick(performance.now());
   }
+  /* be a polite guest on NOAA's server: besides the in-memory cache, keep
+     each day's grid in localStorage for the rest of the day, so revisits
+     and scrubbing cost them nothing */
+  function utcToday() { return new Date().toISOString().slice(0, 10); }
+  function lsGet(back) {
+    try {
+      var raw = localStorage.getItem('fishsst:' + back);
+      if (!raw) return null;
+      var obj = JSON.parse(raw);
+      return obj.d === utcToday() ? obj.t : null;
+    } catch (e) { return null; }
+  }
+  function lsPut(back, tbl) {
+    try {
+      localStorage.setItem('fishsst:' + back, JSON.stringify({ d: utcToday(), t: tbl }));
+    } catch (e) { /* private mode / quota — the fetch cache still works */ }
+  }
+
   function loadDay(back) {
     if (sstCache[back]) { activateGrid(sstCache[back]); return; }
+    var stored = lsGet(back);
+    if (stored) {
+      var cached = parseGrid(stored);
+      sstCache[back] = cached;
+      activateGrid(cached);
+      return;
+    }
     dayLabel.textContent = 'loading…';
     jsonp(ERDDAP.replace('{B}', back ? '-' + back : ''), function (err, data) {
       if (err || !data || !data.table) {
@@ -777,6 +811,7 @@
       }
       var g = parseGrid(data);
       sstCache[back] = g;
+      lsPut(back, data);
       /* only show it if the scrubber still points at this day */
       if (MAXBACK - dayScrub.valueAsNumber === back) activateGrid(g);
     });
