@@ -30,7 +30,8 @@
 
   var HARBOR = D.harbor;
   var harborW = pOf(HARBOR);
-  var SPOT_IDS = ['flats', 'osborn', 'sni'];
+  var programs = D.programs;
+  var prog = programs[0];
 
   /* ---------- svg scaffolding (bottom to top) ---------- */
   function el(name, attrs, parent) {
@@ -39,6 +40,7 @@
     if (parent) parent.appendChild(n);
     return n;
   }
+  var gBathy = el('g', { 'class': 'ch-bathyg' }, svg);     /* depth contours — bottom of the stack */
   var gIso = el('g', { 'class': 'ch-isog' }, svg);        /* isotherms — under land so they never cross the beach */
   var gWater = el('g', { 'class': 'ch-water' }, svg);      /* range rings — under land too */
   var gBound = el('g', { 'class': 'ch-boundg' }, svg);     /* sanctuary + MPA boundaries, land covers the shore side */
@@ -46,6 +48,7 @@
   var gGeoFixed = el('g', { 'class': 'ch-geofixed' }, svg);/* big printed names, scale with the chart */
   var gGeoLabels = el('g', { 'class': 'ch-geolabels' }, svg);
   var gMpaLbl = el('g', { 'class': 'ch-mpalbls' }, svg);   /* MPA names, only when zoomed right in */
+  var gBathyLbl = el('g', { 'class': 'ch-bathylbls' }, svg);
   var gIsoLbl = el('g', { 'class': 'ch-isolbls' }, svg);
   var gMarkWind = el('g', { 'class': 'ch-markwind' }, svg);
   var gMarks = el('g', { 'class': 'ch-marks' }, svg);
@@ -97,6 +100,48 @@
     ringLbls.push(t);
   });
 
+  /* ---------- bathymetry: GMRT isobaths + a packed hover-depth grid ---------- */
+  var BG = D.bathy.grid;
+  function depthFm(lon, lat) {
+    var a = Math.floor((lat - BG.lat0) / BG.d), b = Math.floor((lon - BG.lon0) / BG.d);
+    if (a < 0 || b < 0 || a >= BG.nlat || b >= BG.nlon) return null;
+    var s = BG.enc.substr((a * BG.nlon + b) * 2, 2);
+    return s === 'zz' ? null : parseInt(s, 36);
+  }
+  function fmtDepth(fm) {
+    if (fm == null) return null;
+    return fm < 100 ? fm + ' fm (' + Math.round(fm * 6) + ' ft)' : fm + ' fm';
+  }
+  Object.keys(D.bathy.iso).forEach(function (fm) {
+    var chains = D.bathy.iso[fm];
+    var d = '';
+    chains.forEach(function (c) {
+      c.forEach(function (p, i) {
+        var w = P(p[0], p[1]);
+        d += (i ? 'L' : 'M') + w[0].toFixed(1) + ' ' + w[1].toFixed(1);
+      });
+    });
+    el('path', {
+      d: d, fill: 'none', 'vector-effect': 'non-scaling-stroke',
+      'class': 'ch-bathy ch-bathy--' + fm
+    }, gBathy);
+    /* a couple of inline depth figures per contour, chart-style */
+    chains.slice().sort(function (a, b) { return b.length - a.length; })
+      .slice(0, 2).forEach(function (c) {
+        var i = Math.max(1, Math.min(c.length - 2, Math.round(c.length * 0.4)));
+        var a = P(c[i - 1][0], c[i - 1][1]), b = P(c[i + 1][0], c[i + 1][1]);
+        var ang = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
+        if (ang > 90) ang -= 180;
+        if (ang < -90) ang += 180;
+        var w = P(c[i][0], c[i][1]);
+        var t = el('text', {
+          x: w[0], y: w[1] - 2, 'class': 'ch-bathylbl', 'text-anchor': 'middle',
+          transform: 'rotate(' + ang.toFixed(1) + ' ' + w[0] + ' ' + w[1] + ')'
+        }, gBathyLbl);
+        t.textContent = fm + ' fm';
+      });
+  });
+
   /* ---------- sanctuary + MPA boundaries (indicative, not navigational) ---------- */
   var sanctPaths = [];
   (D.sanctuary || []).forEach(function (r) {
@@ -115,6 +160,39 @@
     t.textContent = m.name;
     mpaLblEls.push(t);
   });
+
+  /* which MPA (if any) is the cursor inside — bbox test, then ray-cast */
+  var mpaBoxes = (D.mpas || []).map(function (m) {
+    var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    m.rings.forEach(function (r) {
+      r.forEach(function (p) {
+        if (p[0] < x0) x0 = p[0];
+        if (p[0] > x1) x1 = p[0];
+        if (p[1] < y0) y0 = p[1];
+        if (p[1] > y1) y1 = p[1];
+      });
+    });
+    return [x0, y0, x1, y1];
+  });
+  function inRing(ring, x, y) {
+    var inside = false;
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      var xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+  function mpaAt(lon, lat) {
+    for (var k = 0; k < (D.mpas || []).length; k++) {
+      var bb = mpaBoxes[k];
+      if (lon < bb[0] || lon > bb[2] || lat < bb[1] || lat > bb[3]) continue;
+      var m = D.mpas[k];
+      for (var r = 0; r < m.rings.length; r++) {
+        if (inRing(m.rings[r], lon, lat)) return m;
+      }
+    }
+    return null;
+  }
 
   /* ---------- printed names ---------- */
   var chanLbl = el('text', {
@@ -206,41 +284,73 @@
   });
   obsHit.addEventListener('mouseleave', hideTip);
 
-  var spotEls = {};
-  /* the two eastern spots label leftward so nothing clips at the frame edge */
-  var SPOT_SIDE = { flats: 1, osborn: -1, sni: -1 };
-  SPOT_IDS.forEach(function (id) {
-    var m = D.spots[id];
-    var w = pOf(m);
-    var g = el('g', { 'class': 'ch-mark' }, gMarks);
-    el('circle', { cx: w[0], cy: w[1], r: 5, 'class': 'ch-buoy ch-spot' }, g);
-    el('circle', { cx: w[0], cy: w[1], r: 1.5, 'class': 'ch-buoy-dot' }, g);
-    var lbl = el('text', {
-      x: 0, y: 0, 'class': 'ch-marklbl',
-      'text-anchor': SPOT_SIDE[id] < 0 ? 'end' : 'start'
-    }, g);
-    lbl.textContent = m.opt + ' · ' + m.name;
-    var hit = el('circle', { cx: w[0], cy: w[1], r: 15, 'class': 'ch-hit' }, g);
-    function tip() {
-      var t = sstAtLonLat(m.lon, m.lat);
-      tooltip.innerHTML = '<strong>' + m.name + '</strong> ' + fmtCoord(m) +
-        ' · ' + Math.round(distNm(w)) + ' nm ' +
-        (t == null ? '' : '· ' + t.toFixed(1) + ' °F');
-      tooltip.style.display = 'block';
-      placeTipAt(worldToScreen(w));
-    }
-    hit.addEventListener('mouseenter', tip);
-    hit.addEventListener('mouseleave', hideTip);
-    hit.addEventListener('click', function (ev) { tip(); ev.stopPropagation(); });
-    spotEls[id] = { g: g, lbl: lbl, w: w, hit: hit, dot: g.childNodes[1], buoy: g.childNodes[0] };
-  });
+  /* program spots + troll routes — rebuilt whenever the target changes */
+  var gSpots = el('g', {}, gMarks);
+  var spotEls = [];
+  var trollEls = [];
+  function drawProgram() {
+    while (gSpots.firstChild) gSpots.removeChild(gSpots.firstChild);
+    spotEls = [];
+    trollEls = [];
+    (prog.routes || []).forEach(function (rt) {
+      var d = '';
+      rt.pts.forEach(function (p, i) {
+        var w = P(p[0], p[1]);
+        d += (i ? 'L' : 'M') + w[0].toFixed(1) + ' ' + w[1].toFixed(1);
+      });
+      trollEls.push(el('path', { d: d, fill: 'none', 'class': 'ch-troll' }, gSpots));
+      /* direction arrow + name at the route's midpoint */
+      var mi = Math.max(1, Math.floor(rt.pts.length / 2));
+      var a = P(rt.pts[mi - 1][0], rt.pts[mi - 1][1]);
+      var b = P(rt.pts[mi][0], rt.pts[mi][1]);
+      var mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+      var ang = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
+      var arr = el('path', {
+        d: 'M-5 -3.5L5 0L-5 3.5Z', 'class': 'ch-trollarrow',
+        transform: 'translate(' + mx + ' ' + my + ') rotate(' + ang + ')'
+      }, gSpots);
+      var lblAng = ang > 90 ? ang - 180 : ang < -90 ? ang + 180 : ang;
+      var tl = el('text', {
+        x: mx, y: my, 'class': 'ch-trolllbl', 'text-anchor': 'middle',
+        transform: 'rotate(' + lblAng.toFixed(1) + ' ' + mx + ' ' + my + ')'
+      }, gSpots);
+      tl.textContent = rt.name;
+      trollEls.push({ arr: arr, lbl: tl, mx: mx, my: my });
+    });
+    prog.spots.forEach(function (s) {
+      var w = pOf(s);
+      var g2 = el('g', { 'class': 'ch-mark' }, gSpots);
+      el('circle', { cx: w[0], cy: w[1], r: 5, 'class': 'ch-buoy ch-spot' }, g2);
+      el('circle', { cx: w[0], cy: w[1], r: 1.5, 'class': 'ch-buoy-dot' }, g2);
+      var lbl = el('text', {
+        x: 0, y: 0, 'class': 'ch-marklbl',
+        'text-anchor': (s.side || 1) < 0 ? 'end' : 'start'
+      }, g2);
+      lbl.textContent = s.opt + ' · ' + s.name;
+      var hit = el('circle', { cx: w[0], cy: w[1], r: 15, 'class': 'ch-hit' }, g2);
+      var tip = function () {
+        var t = sstAtLonLat(s.lon, s.lat);
+        var dep = fmtDepth(depthFm(s.lon, s.lat));
+        tooltip.innerHTML = '<strong>' + s.name + '</strong> ' + fmtCoord(s) +
+          ' · ' + Math.round(distNm(w)) + ' nm' +
+          (dep ? ' · ' + dep : '') +
+          (t == null ? '' : ' · ' + t.toFixed(1) + ' °F');
+        tooltip.style.display = 'block';
+        placeTipAt(worldToScreen(w));
+      };
+      hit.addEventListener('mouseenter', tip);
+      hit.addEventListener('mouseleave', hideTip);
+      hit.addEventListener('click', function (ev) { tip(); ev.stopPropagation(); });
+      spotEls.push({ lbl: lbl, w: w, side: s.side || 1 });
+    });
+    applyView(vb); /* size the fresh elements for the current zoom */
+  }
 
-  /* ---------- view: fitted to the grounds, zoomable from there ---------- */
+  /* ---------- view: fitted per target, zoomable from there ---------- */
   var vb = { x: 0, y: 0, w: 100, h: 100 };
-  var baseView = null;
-  function fitView() {
-    var pts = [harborW, P(-120.72, 34.47), P(-118.92, 33.16), P(-120.47, 33.9)];
-    SPOT_IDS.forEach(function (id) { pts.push(pOf(D.spots[id])); });
+  var baseView = null;   /* the whole chart — panning is clamped to this */
+  var homeView = null;   /* the active target's fit — reset returns here */
+  function computeFit(pts) {
     var xs = pts.map(function (p) { return p[0]; }), ys = pts.map(function (p) { return p[1]; });
     var bb = {
       x: Math.min.apply(null, xs), y: Math.min.apply(null, ys),
@@ -253,8 +363,20 @@
     var w = bb.w + padX * 2, h = bb.h + padT + padB;
     var cx = bb.x + bb.w / 2, cy = bb.y - padT / 2 + padB / 2 + bb.h / 2;
     if (w / h < aspect) w = h * aspect; else h = w / aspect;
-    baseView = { x: cx - w / 2, y: cy - h / 2, w: w, h: h };
-    applyView(baseView);
+    return { x: cx - w / 2, y: cy - h / 2, w: w, h: h };
+  }
+  function fitView() {
+    baseView = computeFit([harborW, P(-120.72, 34.47), P(-118.92, 33.16),
+      P(-120.47, 33.9), P(-119.39, 33.21), P(-120.10, 33.835)]);
+    if (prog && prog.fit) {
+      var f = prog.fit;
+      homeView = computeFit([P(f[0], f[1]), P(f[2], f[3])]);
+      /* a target fit may poke past the chart edge — pull it back in */
+      homeView = clampView(homeView);
+    } else {
+      homeView = baseView;
+    }
+    applyView(homeView);
   }
   function clampView(v) {
     if (!baseView) return v;
@@ -305,10 +427,18 @@
     Array.prototype.forEach.call(gMarks.querySelectorAll('.ch-hit'), function (c) {
       c.setAttribute('r', 15 * z);
     });
-    Object.keys(spotEls).forEach(function (id) {
-      var e = spotEls[id];
-      e.lbl.setAttribute('x', e.w[0] + SPOT_SIDE[id] * 9 * z);
+    spotEls.forEach(function (e) {
+      e.lbl.setAttribute('x', e.w[0] + e.side * 9 * z);
       e.lbl.setAttribute('y', e.w[1] - 6 * z);
+    });
+    /* troll routes: dash + arrow + label scale with the screen */
+    var td = (8 * z) + ' ' + (5 * z);
+    trollEls.forEach(function (t) {
+      if (t.style) { t.style.strokeDasharray = td; return; }
+      t.arr.setAttribute('transform', t.arr.getAttribute('transform')
+        .replace(/scale\([^)]*\)/, '').trim() + ' scale(' + z + ')');
+      t.lbl.style.fontSize = (9.5 * z) + 'px';
+      t.lbl.setAttribute('y', t.my - 6 * z);
     });
     harborLbl.setAttribute('x', harborW[0] + 8 * z);
     harborLbl.setAttribute('y', harborW[1] - 6 * z);
@@ -326,10 +456,18 @@
     /* MPA names only when zoomed right in */
     gMpaLbl.style.fontSize = (9.5 * z) + 'px';
     gMpaLbl.style.display = z <= 1.35 ? '' : 'none';
+    /* depth figures: with the structure view they surface much earlier */
+    gBathyLbl.style.fontSize = (9 * z) + 'px';
+    gBathyLbl.style.display =
+      (prog.view === 'structure' && z <= 3.2) || z <= 1.35 ? '' : 'none';
     placeBoat(z);
-    if (resetBtn && baseView) {
-      resetBtn.style.display = vb.w < baseView.w * 0.985 ? '' : 'none';
-    }
+    var zoomedIn = homeView && vb.w < homeView.w * 0.985;
+    var offHome = homeView && (zoomedIn ||
+      Math.abs(vb.x - homeView.x) > homeView.w * 0.01 ||
+      Math.abs(vb.y - homeView.y) > homeView.h * 0.01);
+    if (resetBtn) resetBtn.style.display = offHome ? '' : 'none';
+    /* zoomed in on touch: claim the finger for panning */
+    frame.style.touchAction = baseView && vb.w < baseView.w * 0.985 ? 'none' : 'pan-y';
   }
 
   /* ---------- coastline draw-on ---------- */
@@ -615,7 +753,8 @@
         if (isNaN(f)) { img.data[o + 3] = 0; continue; }
         var c = rampColor(f);
         img.data[o] = c[0]; img.data[o + 1] = c[1]; img.data[o + 2] = c[2];
-        img.data[o + 3] = 96;
+        /* the structure view lets the bottom carry the story */
+        img.data[o + 3] = prog.view === 'structure' ? 56 : 96;
       }
     }
     tc.putImageData(img, 0, 0);
@@ -690,6 +829,29 @@
     }).catch(function () { /* the chart works without wind */ });
   }
 
+  /* interpolated wind at any world point, as speed + from-direction */
+  function windAtWorld(w) {
+    if (!wx.samples) return null;
+    var f = fieldAt(w[0], w[1]);
+    var spd = Math.hypot(f[0], f[1]);
+    if (spd < 0.3) return null;
+    var toDeg = (Math.atan2(f[0], -f[1]) * 180 / Math.PI + 360) % 360;
+    return { ws: spd, wd: (toDeg + 180) % 360 };
+  }
+  /* mean wind over the active target's spots — the rose and the strip */
+  function groundsWind() {
+    if (!wx.samples) return null;
+    var su = 0, sv = 0, n = 0;
+    prog.spots.forEach(function (s) {
+      var f = fieldAt(pOf(s)[0], pOf(s)[1]);
+      su += f[0]; sv += f[1]; n++;
+    });
+    if (!n) return null;
+    var spd = Math.hypot(su / n, sv / n);
+    if (spd < 0.3) return null;
+    var toDeg = (Math.atan2(su / n, -(sv / n)) * 180 / Math.PI + 360) % 360;
+    return { ws: spd, wd: (toDeg + 180) % 360 };
+  }
   function applyWindIdx(i, qual) {
     wx.qual = qual;
     wx.ids.forEach(function (id) {
@@ -704,19 +866,11 @@
       s.u = vec[0];
       s.v = vec[1];
     });
-    /* rose: mean wind over the three grounds */
-    var su = 0, sv = 0, n = 0;
-    SPOT_IDS.forEach(function (id) {
-      var s = wx.samples[id];
-      if (s && s.ws != null) { su += s.u; sv += s.v; n++; }
-    });
-    if (n && roseNeedle) {
-      var spd = Math.hypot(su / n, sv / n);
-      var toDeg = (Math.atan2(su / n, -(sv / n)) * 180 / Math.PI + 360) % 360;
-      var wd = (toDeg + 180) % 360;
-      roseNeedle.style.transform = 'rotate(' + ((wd + 180) % 360) + 'deg)';
-      roseSpd.textContent = Math.round(spd);
-      roseDir.textContent = compass16(wd);
+    var gw = groundsWind();
+    if (gw && roseNeedle) {
+      roseNeedle.style.transform = 'rotate(' + ((gw.wd + 180) % 360) + 'deg)';
+      roseSpd.textContent = Math.round(gw.ws);
+      roseDir.textContent = compass16(gw.wd);
     }
     buildWindArrows();
     paintTable();
@@ -738,21 +892,22 @@
     applyWindIdx(i, qual);
   }
 
-  /* small wind arrows at the harbor and each spot */
+  /* small wind arrows at the harbor and each of the target's spots */
   function buildWindArrows() {
     while (gMarkWind.firstChild) gMarkWind.removeChild(gMarkWind.firstChild);
     if (!wx.samples) return;
     var z = zoomOf(vb);
-    ['harbor'].concat(SPOT_IDS).forEach(function (id) {
-      var s = wx.samples[id];
-      if (!s || s.ws == null) return;
-      var w = id === 'harbor' ? harborW : pOf(D.spots[id]);
+    var pts = [{ w: harborW }];
+    prog.spots.forEach(function (s) { pts.push({ w: pOf(s) }); });
+    pts.forEach(function (p) {
+      var wv = windAtWorld(p.w);
+      if (!wv) return;
       var g = el('g', { 'class': 'ch-mwind' }, gMarkWind);
       var rot = el('g', {}, g);
-      var len = Math.min(26, 9 + s.ws * 1.1) * z;
-      var toDeg = (s.wd + 180) % 360;
+      var len = Math.min(26, 9 + wv.ws * 1.1) * z;
+      var toDeg = (wv.wd + 180) % 360;
       rot.setAttribute('transform',
-        'translate(' + w[0] + ' ' + (w[1] + 19 * z) + ') rotate(' + (toDeg - 90) + ')');
+        'translate(' + p.w[0] + ' ' + (p.w[1] + 19 * z) + ') rotate(' + (toDeg - 90) + ')');
       el('line', { x1: -len / 2, y1: 0, x2: len / 2 - 3 * z, y2: 0, 'class': 'ch-mwind-line' }, rot);
       var s2 = 3 * z;
       el('path', {
@@ -761,9 +916,9 @@
         'class': 'ch-mwind-head'
       }, rot);
       var txt = el('text', {
-        x: w[0], y: w[1] + 30 * z, 'class': 'ch-mwind-txt', 'text-anchor': 'middle'
+        x: p.w[0], y: p.w[1] + 30 * z, 'class': 'ch-mwind-txt', 'text-anchor': 'middle'
       }, g);
-      txt.textContent = Math.round(s.ws);
+      txt.textContent = Math.round(wv.ws);
     });
   }
 
@@ -839,10 +994,19 @@
       var lon = REF.lon + w[0] / (COSL * SCALE);
       var lat = REF.lat - w[1] / SCALE;
       var t = sstAtLonLat(lon, lat);
-      if (t == null) { hideTip(); return; }
-      var nm = Math.round(distNm(w));
-      tooltip.innerHTML = '<strong>' + t.toFixed(1) + ' °F</strong> · ' +
-        nm + ' nm ' + compass16(brgTrue(w)) + ' of the harbor';
+      var dep = depthFm(lon, lat);
+      if (t == null && dep == null) { hideTip(); return; }
+      var parts = [];
+      if (t != null) parts.push('<strong>' + t.toFixed(1) + ' °F</strong>');
+      if (dep != null) parts.push(fmtDepth(dep));
+      parts.push(Math.round(distNm(w)) + ' nm ' + compass16(brgTrue(w)) + ' of the harbor');
+      var html = parts.join(' · ');
+      var mpa = mpaAt(lon, lat);
+      if (mpa) {
+        html += '<br><span class="tt-mpa">inside ' + mpa.name +
+          (mpa.kind === 'smr' ? ' — no take' : ' — restricted take, check the regs') + '</span>';
+      }
+      tooltip.innerHTML = html;
       tooltip.style.display = 'block';
       placeTipAt([sx, sy]);
     });
@@ -886,7 +1050,9 @@
     if (ev.target.closest && ev.target.closest('button')) return;
     pointers[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
     pCount++;
-    if (pCount === 1 && ev.pointerType === 'mouse') {
+    /* mouse always drags; a finger drags once the chart is zoomed in */
+    if (pCount === 1 && (ev.pointerType === 'mouse' ||
+        (baseView && vb.w < baseView.w * 0.985))) {
       drag = { x: ev.clientX, y: ev.clientY, vb: { x: vb.x, y: vb.y, w: vb.w, h: vb.h }, moved: false };
     }
     if (pCount === 2) {
@@ -907,6 +1073,7 @@
       endPointer(ev);
       return;
     }
+    if (drag && ev.pointerType !== 'mouse') hideTip();
     p.x = ev.clientX;
     p.y = ev.clientY;
     if (pinch && pCount >= 2) {
@@ -1201,18 +1368,10 @@
     parts.push('<span>chart water <b>' + sst.min.toFixed(0) + '–' + sst.max.toFixed(0) +
       ' °F</b></span>');
     parts.push('<span>the zone: <b>64–68 °F</b> over structure, fish the cool side</span>');
-    if (wx.samples) {
-      var su = 0, sv = 0, n = 0;
-      SPOT_IDS.forEach(function (id) {
-        var q = wx.samples[id];
-        if (q && q.ws != null) { su += q.u; sv += q.v; n++; }
-      });
-      if (n) {
-        var spd = Math.hypot(su / n, sv / n);
-        var toDeg = (Math.atan2(su / n, -(sv / n)) * 180 / Math.PI + 360) % 360;
-        parts.push('<span>wind on the grounds ' + wx.qual + ' <b>' + Math.round(spd) +
-          ' kn</b> from ' + compass16((toDeg + 180) % 360) + '</span>');
-      }
+    var gw = groundsWind();
+    if (gw) {
+      parts.push('<span>wind on the grounds ' + wx.qual + ' <b>' + Math.round(gw.ws) +
+        ' kn</b> from ' + compass16(gw.wd) + '</span>');
     }
     condEl.innerHTML = parts.join('<span class="sail-dot">·</span>');
   }
@@ -1221,21 +1380,21 @@
   function paintTable() {
     if (!tableEl) return;
     var rows = '';
-    SPOT_IDS.forEach(function (id) {
-      var m = D.spots[id];
+    prog.spots.forEach(function (m) {
       var w = pOf(m);
       var t = sstAtLonLat(m.lon, m.lat);
-      var s = wx.samples && wx.samples[id];
+      var dep = depthFm(m.lon, m.lat);
+      var wv = windAtWorld(w);
       rows += '<tr><td>' + m.opt + '</td><td>' + m.name +
         '</td><td>' + Math.round(distNm(w)) + ' nm</td><td>' +
         String(brgMag(w)).padStart(3, '0') + '°M</td><td>' +
+        (dep == null ? '—' : dep + ' fm') + '</td><td>' +
         (t == null ? '—' : '<b>' + t.toFixed(1) + '°</b>') + '</td><td>' +
-        (s && s.ws != null
-          ? Math.round(s.ws) + ' kn <span class="muted">' + compass16(s.wd) + '</span>' : '—') +
+        (wv ? Math.round(wv.ws) + ' kn <span class="muted">' + compass16(wv.wd) + '</span>' : '—') +
         '</td></tr>';
     });
     tableEl.innerHTML = '<table class="sail-table"><thead><tr><th></th><th>spot</th>' +
-      '<th>run</th><th>brg</th><th>sst</th><th>wind</th></tr></thead><tbody>' +
+      '<th>run</th><th>brg</th><th>depth</th><th>sst</th><th>wind</th></tr></thead><tbody>' +
       rows + '</tbody></table>';
   }
 
@@ -1387,11 +1546,46 @@
       }).catch(function () { /* the panel just stays hidden */ });
   }
 
+  /* ---------- target species programs ---------- */
+  var speciesSel = document.getElementById('fish-species');
+  var summaryEl = document.getElementById('fish-summary');
+  var notesEl = document.getElementById('fish-notes');
+  function applyProgram(id) {
+    prog = programs.filter(function (p) { return p.id === id; })[0] || programs[0];
+    svg.setAttribute('data-view', prog.view);
+    hideTip();
+    drawProgram();
+    if (summaryEl) summaryEl.innerHTML = prog.summary;
+    if (notesEl) {
+      notesEl.innerHTML = prog.spots.map(function (s) {
+        return '<p><strong>' + s.opt + ' &middot; ' + s.name + '.</strong> ' + s.note + '</p>';
+      }).join('');
+    }
+    fitView();
+    if (sst) activateGrid(sst); /* re-tint for the view, repaint everything */
+    else {
+      buildWindArrows();
+      paintTable();
+      paintConditions();
+    }
+    if (reduceMotion) tick(performance.now());
+  }
+  if (speciesSel) {
+    programs.forEach(function (p) {
+      var o = document.createElement('option');
+      o.value = p.id;
+      o.textContent = p.label;
+      speciesSel.appendChild(o);
+    });
+    speciesSel.addEventListener('change', function () {
+      applyProgram(speciesSel.value);
+    });
+  }
+
   /* ---------- boot ---------- */
   function boot() {
     resizeCanvas();
-    fitView();
-    paintTable();
+    applyProgram(programs[0].id);
     loadDay(0);
     loadWind();
     loadWx();

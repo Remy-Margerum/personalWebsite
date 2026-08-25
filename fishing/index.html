@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fishing — Remy Margerum</title>
-  <meta name="description" content="Where the bluefin water is off Santa Barbara — NOAA sea-surface temperature contours drawn over a line chart of the Channel Islands, with the live wind field.">
+  <meta name="description" content="Where the fish are off Santa Barbara — bluefin, yellowtail, rockfish and halibut programs over a line chart of the Channel Islands, with NOAA sea-surface temperature, depth contours, wind, and the offshore forecast.">
   <link rel="canonical" href="https://remymargerum.com/fishing/">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Fishing — Remy Margerum">
@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
   <!-- versioned so a CDN-cached pre-fishing stylesheet can never pair with this page -->
-  <link rel="stylesheet" href="/assets/css/style.css?v=5">
+  <link rel="stylesheet" href="/assets/css/style.css?v=6">
   <script src="/assets/js/fishing-data.js" defer></script>
   <script src="/assets/js/fishing.js" defer></script>
 </head>
@@ -61,6 +61,10 @@
       </div>
 
       <div class="sail-controls fish-controls">
+        <div class="sail-control fish-control--species">
+          <label for="fish-species">Target</label>
+          <select id="fish-species" autocomplete="off"></select>
+        </div>
         <div class="sail-control sail-control--time">
           <div class="sail-timehead">
             <label for="fish-day">Water day &mdash; <span id="fish-day-label">loading&hellip;</span></label>
@@ -126,46 +130,35 @@
       <div class="sail-conditions" id="fish-conditions"><span class="muted">Fetching the water&hellip;</span></div>
 
       <div class="sail-details">
-        <p class="sail-summary">Pacific bluefin are the cold-tolerant tuna &mdash; caught off
-        California from the mid-50s into the low 70s &deg;F. The number that matters isn&rsquo;t the
-        absolute temperature but the <strong>edge</strong>: the break where warm bight water bumps
-        against cooler upwelled water. Fish stack on those breaks, usually on the cool side, and
-        they follow bait more than they follow a thermometer. The gap between the black and red
-        lines above is the highest-percentage water on the chart.</p>
+        <p class="sail-summary" id="fish-summary">Pacific bluefin are the cold-tolerant tuna &mdash;
+        caught off California from the mid-50s into the low 70s &deg;F. The number that matters
+        isn&rsquo;t the absolute temperature but the <strong>edge</strong>: the break where warm
+        bight water bumps against cooler upwelled water.</p>
 
         <div id="fish-table"></div>
 
-        <div class="fish-notes">
-          <p><strong>A &middot; Santa Rosa Flats.</strong> Closest option and the one to try first for
-          a day trip &mdash; the break tends to sit right over the shelf edge south of the northern
-          islands, exactly where the fleet has been finding fish &ldquo;sliding farther north.&rdquo;</p>
-          <p><strong>B &middot; Osborn Bank.</strong> Classic bluefin structure below Santa Barbara
-          Island with a real track record. When the chart shows it inside 70&deg;F-plus water it&rsquo;s
-          the warm-side gamble &mdash; worth it only if the break has moved east.</p>
-          <p><strong>C &middot; San Nicolas Island.</strong> The long run and overnight territory, but
-          the spot that keeps producing confirmed counts. If the break wraps the back of the island,
-          this is where the proven fish are.</p>
-        </div>
+        <div class="fish-notes" id="fish-notes"></div>
 
-        <p class="sail-fine muted">Working rule: find the 64&ndash;68&deg;F break over structure, then
-        look for bait, birds, breezing fish, and shiners. Hover the chart to read the water anywhere;
-        the dashed rings are 20, 40, and 60 nm from the harbor mouth, and runs and bearings
-        (magnetic, var 12.5&deg;E) are computed great-circle from the harbor. Scroll or pinch to
-        zoom, drag to pan, double-click to zoom in. Scrub back through the
-        week of NOAA analyses to watch the break move, or forward past the latest analysis: forward
-        days switch to an ocean-model forecast, drawn with dashed isotherms &mdash; coarser than the
-        5&nbsp;km analysis, so trust the break&rsquo;s trend more than its exact position. The wind
-        layer follows the day you pick (midday, or right now for the current view). The dash-dot
-        line is the Channel Islands National Marine Sanctuary boundary and the violet patches are
-        state and federal MPAs (zoom in for their names) &mdash; both drawn indicatively, so verify
-        boundaries and current CDFW bluefin limits before you go. A chart for planning, not
-        navigation.</p>
+        <p class="sail-fine muted">Hover the chart to read the water anywhere &mdash; temperature,
+        typical depth, range from the harbor, and whether you&rsquo;re inside an MPA. Scroll or
+        pinch to zoom, drag to pan (one finger pans on a phone once you&rsquo;re zoomed in),
+        double-click to zoom further, and the dashed rings are 20, 40, and 60 nm from the harbor
+        mouth; runs and bearings (magnetic, var 12.5&deg;E) are computed great-circle from the
+        harbor. Scrub back through the week of NOAA analyses to watch the break move, or forward
+        past the latest analysis: forward days switch to an ocean-model forecast, drawn with dashed
+        isotherms &mdash; coarser than the 5&nbsp;km analysis, so trust the break&rsquo;s trend more
+        than its exact position. The wind layer follows the day you pick. The dash-dot line is the
+        Channel Islands National Marine Sanctuary boundary and the violet patches are state and
+        federal MPAs (zoom in for their names) &mdash; boundaries, depths, and spot marks are all
+        indicative, so verify against official charts and the current CDFW regulations before you
+        go. A chart for planning, not navigation.</p>
         <p class="sail-fine muted">SST analyses: <a href="https://coastwatch.noaa.gov/erddap/griddap/noaacwBLENDEDsstDNDaily.html" target="_blank" rel="noopener">NOAA/NESDIS Geo-Polar Blended 5&nbsp;km analysis</a>,
         served by NOAA CoastWatch ERDDAP (public open data, courtesy of NOAA) &middot; SST forecast and wind by
         <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC&nbsp;BY&nbsp;4.0;
         sea-surface forecast from the M&eacute;t&eacute;o-France global ocean model)
+        &middot; Depths and contours from the <a href="https://www.gmrt.org/" target="_blank" rel="noopener">GMRT synthesis</a> (Ryan et&nbsp;al. 2009)
         &middot; Shoreline &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
-        &middot; Spot marks are approximate fishing-grounds waypoints.</p>
+        &middot; Spot notes draw on Salt Water Sportsman, BDOutdoors, and Noozhawk&rsquo;s Captain&rsquo;s Log.</p>
       </div>
 
       <noscript><p class="center muted">The live chart needs JavaScript &mdash; without it, the

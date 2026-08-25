@@ -881,7 +881,7 @@ h3 { font-size: 1.5rem; }
    Fishing — bluefin SST chart (shares the sailing chart's ink)
    -------------------------------------------------------------------------- */
 .fish-controls { justify-content: center; }
-.fish-controls .sail-control { flex: 0 1 30rem; }
+.fish-controls .sail-control--time { flex: 0 1 28rem; }
 
 .fish-frame {
   max-width: 56rem;
@@ -920,6 +920,57 @@ h3 { font-size: 1.5rem; }
 .ch-ring { fill: none; stroke: #b6bfc9; stroke-width: 1; opacity: .9; vector-effect: non-scaling-stroke; }
 .ch-ringlbl { fill: #9aa4ae; font-style: italic; letter-spacing: .08em; }
 .ch-rock { stroke: var(--muted); stroke-width: 1.1; opacity: .8; vector-effect: non-scaling-stroke; }
+
+/* depth contours — quiet blue-gray, louder in the structure view */
+.ch-bathy { stroke: #c6d0da; stroke-width: .8; opacity: .7; }
+.ch-bathy--100 { stroke-width: 1.15; }
+svg[data-view="structure"] .ch-bathy { stroke: #93a7ba; opacity: .95; }
+svg[data-view="structure"] .ch-iso { opacity: .4; }
+svg[data-view="structure"] .ch-isolbl { opacity: .45; }
+.ch-bathylbl {
+  fill: #8fa3b5;
+  font-style: italic;
+  letter-spacing: .04em;
+  stroke: var(--paper);
+  stroke-width: .28em;
+  paint-order: stroke;
+  stroke-linejoin: round;
+}
+
+/* troll routes */
+.ch-troll {
+  stroke: var(--brown);
+  stroke-width: 1.6;
+  opacity: .7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.ch-trollarrow { fill: var(--brown); opacity: .8; }
+.ch-trolllbl {
+  fill: var(--brown-2);
+  font-style: italic;
+  letter-spacing: .06em;
+  stroke: var(--paper);
+  stroke-width: .28em;
+  paint-order: stroke;
+  stroke-linejoin: round;
+}
+
+.tt-mpa { color: #7a5482; font-size: .82rem; }
+
+.fish-control--species { flex: 0 1 24rem; }
+.fish-control--species select {
+  width: 100%;
+  font-family: var(--serif);
+  font-size: 1rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 1px;
+  padding: .55rem .7rem;
+}
+.fish-control--species select:focus { outline: none; border-color: var(--brown); }
 
 /* sanctuary + MPA boundaries — the protective family reads violet,
    distinct from the temperature inks */
