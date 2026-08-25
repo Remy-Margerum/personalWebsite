@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
   <!-- versioned so a CDN-cached pre-fishing stylesheet can never pair with this page -->
-  <link rel="stylesheet" href="/assets/css/style.css?v=3">
+  <link rel="stylesheet" href="/assets/css/style.css?v=4">
   <script src="/assets/js/fishing-data.js" defer></script>
   <script src="/assets/js/fishing.js" defer></script>
 </head>
@@ -114,6 +114,7 @@
           </svg>
         </div>
         <div class="sail-tooltip" id="fish-tooltip"></div>
+        <button type="button" class="sail-wed fish-reset" id="fish-reset" style="display:none">&#8634; reset view</button>
         <span class="sail-credit"><span id="fish-credit-src">NOAA Geo-Polar blended 5 km SST</span><span id="fish-credit-date"></span></span>
       </div>
 
@@ -144,13 +145,16 @@
         <p class="sail-fine muted">Working rule: find the 64&ndash;68&deg;F break over structure, then
         look for bait, birds, breezing fish, and shiners. Hover the chart to read the water anywhere;
         the dashed rings are 20, 40, and 60 nm from the harbor mouth, and runs and bearings
-        (magnetic, var 12.5&deg;E) are computed great-circle from the harbor. Scrub back through the
+        (magnetic, var 12.5&deg;E) are computed great-circle from the harbor. Scroll or pinch to
+        zoom, drag to pan, double-click to zoom in. Scrub back through the
         week of NOAA analyses to watch the break move, or forward past the latest analysis: forward
         days switch to an ocean-model forecast, drawn with dashed isotherms &mdash; coarser than the
         5&nbsp;km analysis, so trust the break&rsquo;s trend more than its exact position. The wind
-        layer follows the day you pick (midday, or right now for the current view). Check current
-        CDFW bluefin limits and know the Channel Islands sanctuary and MPA boundaries before you go.
-        A chart for planning, not navigation.</p>
+        layer follows the day you pick (midday, or right now for the current view). The dash-dot
+        line is the Channel Islands National Marine Sanctuary boundary and the violet patches are
+        state and federal MPAs (zoom in for their names) &mdash; both drawn indicatively, so verify
+        boundaries and current CDFW bluefin limits before you go. A chart for planning, not
+        navigation.</p>
         <p class="sail-fine muted">SST analyses: <a href="https://coastwatch.noaa.gov/erddap/griddap/noaacwBLENDEDsstDNDaily.html" target="_blank" rel="noopener">NOAA/NESDIS Geo-Polar Blended 5&nbsp;km analysis</a>,
         served by NOAA CoastWatch ERDDAP (public open data, courtesy of NOAA) &middot; SST forecast and wind by
         <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC&nbsp;BY&nbsp;4.0;
