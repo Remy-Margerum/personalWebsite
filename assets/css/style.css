@@ -1110,6 +1110,20 @@ svg[data-view="structure"] .ch-isolbl { opacity: .45; }
   color: #a03a2c;
   padding: .3rem 0 .1rem;
 }
+
+/* the daily AI weekend brief */
+.fish-brief { background: var(--paper); }
+.fish-brief-tag {
+  font-size: .6rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 1px;
+  padding: .1rem .4rem;
+}
+.fish-brief-headline { font-size: 1.12rem; color: var(--black); margin-bottom: .35rem; }
+.fish-brief-body { font-size: .97rem; }
 .fish-wx-day { padding: .34rem 0; border-top: 1px solid var(--line); }
 .fish-wx-day b { color: var(--black); }
 .fish-wx-night { color: var(--muted); font-size: .9em; }

@@ -31,6 +31,12 @@ assets/js/fishing-data.js Channel Islands shoreline + fishing spots (generated)
 assets/img/             Photos + favicon; assets/img/pdf/<slug>/ holds pre-rendered
                         page images (150 DPI JPGs, generated with PyMuPDF)
 assets/files/           Resume + academic PDFs (download links)
+assets/data/            Generated data (fishing-brief.json, written daily
+                        by the fishing-brief workflow)
+scripts/                Node generators run by GitHub Actions
+                        (fishing-brief.mjs drafts the weekend outlook with
+                        the Claude API — needs the ANTHROPIC_API_KEY repo
+                        secret; without it the workflow no-ops)
 infra/owntracks-relay/  Cloud Run relay for the live boat marker (service
                         owntracks-relay, project margerum; POST token lives
                         only in the Cloud Run env var, never in this repo)

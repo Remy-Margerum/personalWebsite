@@ -1,0 +1,9 @@
+{
+  "name": "site-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Scheduled generators for remymargerum.com (run by GitHub Actions)",
+  "dependencies": {
+    "@anthropic-ai/sdk": "latest"
+  }
+}

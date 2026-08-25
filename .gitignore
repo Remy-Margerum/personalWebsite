@@ -1,2 +1,2 @@
-Thumbs.db
-.DS_Store
+node_modules/
+scripts/package-lock.json
