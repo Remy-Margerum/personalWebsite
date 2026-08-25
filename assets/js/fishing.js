@@ -125,10 +125,11 @@
       d: d, fill: 'none', 'vector-effect': 'non-scaling-stroke',
       'class': 'ch-bathy ch-bathy--' + fm
     }, gBathy);
-    /* a couple of inline depth figures per contour, chart-style */
+    /* inline depth figures spread across the bigger contours, chart-style */
     chains.slice().sort(function (a, b) { return b.length - a.length; })
-      .slice(0, 2).forEach(function (c) {
-        var i = Math.max(1, Math.min(c.length - 2, Math.round(c.length * 0.4)));
+      .slice(0, 5).forEach(function (c, ci) {
+        var i = Math.max(1, Math.min(c.length - 2,
+          Math.round(c.length * (0.25 + (ci % 3) * 0.25))));
         var a = P(c[i - 1][0], c[i - 1][1]), b = P(c[i + 1][0], c[i + 1][1]);
         var ang = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
         if (ang > 90) ang -= 180;
@@ -299,10 +300,12 @@
         d += (i ? 'L' : 'M') + w[0].toFixed(1) + ' ' + w[1].toFixed(1);
       });
       trollEls.push(el('path', { d: d, fill: 'none', 'class': 'ch-troll' }, gSpots));
-      /* direction arrow + name at the route's midpoint */
+      /* direction arrow + name at the route's midpoint; the angle reads
+         from a wide stencil so a contour wiggle can't spin the label */
       var mi = Math.max(1, Math.floor(rt.pts.length / 2));
-      var a = P(rt.pts[mi - 1][0], rt.pts[mi - 1][1]);
-      var b = P(rt.pts[mi][0], rt.pts[mi][1]);
+      var ia = Math.max(0, mi - 3), ib = Math.min(rt.pts.length - 1, mi + 3);
+      var a = P(rt.pts[ia][0], rt.pts[ia][1]);
+      var b = P(rt.pts[ib][0], rt.pts[ib][1]);
       var mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
       var ang = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
       var arr = el('path', {
