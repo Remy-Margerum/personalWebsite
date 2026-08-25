@@ -14,9 +14,10 @@ contact-me/             Contact form (Formspree → remymargerum@gmail.com)
 vietnam/                "Northern Vietnam by Motorcycle" article
 sailing/                Live SBYC course chart with per-mark wind forecast
 cycling/                SB100 training feed
-fishing/                Bluefin SST chart — NOAA Geo-Polar 5 km sea-surface
-                        temperature over the Channel Islands, wind overlay,
-                        Open-Meteo ocean-model forecast for the days ahead
+fishing/                Fishing chart — target-species programs (bluefin,
+                        yellowtail, rockfish, halibut) over the Channel
+                        Islands with NOAA SST, GMRT depth contours, wind,
+                        NWS offshore forecast, sanctuary/MPA boundaries
 privacy-policy/         Privacy policy
 lottery/                CA Lottery EV — offline stub (not in nav; app lives in the
                         separate ca-scratchers repo, currently disabled)
