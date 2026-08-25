@@ -29,12 +29,13 @@ jobs:
         run: node scripts/fishing-brief.mjs
       - name: Commit if changed
         run: |
-          if git diff --quiet -- assets/data/fishing-brief.json; then
+          git add assets/data/fishing-brief.json
+          # staged diff — a plain diff misses the file when it is brand-new
+          if git diff --cached --quiet; then
             echo "No change."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/data/fishing-brief.json
           git commit -m "Update fishing weekend brief"
           git push
