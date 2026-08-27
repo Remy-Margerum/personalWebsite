@@ -149,6 +149,21 @@
         <div id="sail-legs"></div>
         <p class="sail-fine muted">Start, finish, and gate legs run to the middle of the G&ndash;F and F&ndash;X lines. Bearings magnetic (var 12.5&deg;E); published distances from the club chart. The forecast is sampled at every mark &mdash; the small arrows on the chart show the local wind for the hour you pick above, and the &#9733; sits on whichever end of the start line that wind favors. Est. times assume a ~20&nbsp;ft boat (&asymp;5&nbsp;kn upwind and reaching, slower in light air, tacking through 90&deg; when a leg is dead upwind) starting at the selected hour; each leg&rsquo;s wind is the forecast at that leg&rsquo;s own transit time. Hover a buoy for its coordinates.</p>
         <p class="sail-fine muted">Harbor Patrol VHF 16/12 &middot; SBYC Race Committee VHF 71 &middot; Forecast by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (models: NOAA NBM &middot; HRRR &middot; GFS, and <a href="https://www.ecmwf.int/en/forecasts/datasets/open-data" target="_blank" rel="noopener">ECMWF IFS open data</a>, CC&nbsp;BY&nbsp;4.0) &middot; Live harbor wind from NOAA CO-OPS station 9411340 &middot; Shoreline &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</p>
+        <p class="sail-fine muted">Link straight to an hour: add <b>?t=YYYY-MM-DDTHH:MM</b> to this page&rsquo;s address (e.g. <a href="/sailing/?t=2026-09-02T17:00">/sailing/?t=2026-09-02T17:00</a>) and the forecast slider opens there &mdash; a bare date lands on 5&nbsp;PM, race time.</p>
+      </div>
+
+      <div class="fish-wx" id="sail-wx" hidden>
+        <div class="fish-wx-head">
+          <span class="fish-wx-title">Zone forecast</span>
+          <span class="fish-wx-zones" id="sail-wx-zones"></span>
+          <span class="fish-wx-updated" id="sail-wx-updated"></span>
+        </div>
+        <p class="fish-wx-synopsis" id="sail-wx-synopsis"></p>
+        <div id="sail-wx-days"></div>
+        <p class="fish-wx-fine">NWS Los Angeles/Oxnard
+        <a href="https://forecast.weather.gov/MapClick.php?zoneid=PZZ650" target="_blank" rel="noopener">coastal waters forecast</a>
+        &middot; four days from the selected forecast hour, extended past the NWS text with an
+        Open-Meteo model outlook (lower confidence)</p>
       </div>
 
       <noscript><p class="center muted">The live chart needs JavaScript &mdash; without it, here are the essentials: racing runs off Leadbetter Beach on the Santa Barbara Yacht Club courses; start and finish on the G&ndash;F line off the harbor entrance.</p></noscript>

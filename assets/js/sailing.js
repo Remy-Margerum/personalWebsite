@@ -1008,7 +1008,12 @@
     scrub.min = wx.nowIdx;
     scrub.max = Math.min(wx.hours.length - 1, c.maxIdx);
     if (first) {
-      scrub.value = wx.wedIdx >= wx.nowIdx && wx.wedIdx <= +scrub.max ? wx.wedIdx : scrub.max;
+      var ui = urlTimeIdx();
+      if (ui != null) {
+        scrub.value = Math.min(Math.max(ui, +scrub.min), +scrub.max);
+      } else {
+        scrub.value = wx.wedIdx >= wx.nowIdx && wx.wedIdx <= +scrub.max ? wx.wedIdx : scrub.max;
+      }
     } else if (+scrub.value > +scrub.max) {
       scrub.value = scrub.max;
     }
@@ -1137,6 +1142,13 @@
     updateMarkWinds();
     if (reduceMotion) windTick(performance.now());
     paintLegWinds();
+
+    /* the zone forecast panel windows to the selected hour's day */
+    var day = h.iso.slice(0, 10);
+    if (day !== wxDay) {
+      wxDay = day;
+      paintZoneWx();
+    }
   }
   scrub.addEventListener('input', applyHour);
 
@@ -1186,6 +1198,213 @@
   loadObs();
   setInterval(loadObs, 360000);
 
+  /* ---------- deep link: preset the forecast hour from the URL ----------
+     /sailing/?t=2026-09-02T17:00 (also ?t=2026-09-02T17, or ?date=…&hour=…)
+     opens the slider on that hour, clamped to the model's horizon. A bare
+     date lands on 5 PM — race time. Minutes floor to the containing hour. */
+  function urlTimeIso() {
+    var q;
+    try { q = new URLSearchParams(window.location.search); } catch (e) { return null; }
+    var t = q.get('t') || q.get('time') || q.get('at') || q.get('datetime');
+    if (!t && q.get('date')) {
+      t = q.get('date') + (q.get('hour') ? 'T' + q.get('hour') : '');
+    }
+    if (!t) return null;
+    var m = t.trim().replace(' ', 'T')
+      .match(/^(\d{4}-\d{2}-\d{2})(?:T(\d{1,2})(?::\d{2})?)?$/);
+    if (!m) return null;
+    var hh = m[2] == null ? 17 : Math.min(23, +m[2]);
+    return m[1] + 'T' + String(hh).padStart(2, '0') + ':00';
+  }
+  function urlTimeIdx() {
+    var iso = urlTimeIso();
+    if (!iso || !wx.hours.length) return null;
+    var i = wx.hours.findIndex(function (h) { return h.iso >= iso; });
+    return i < 0 ? wx.hours.length - 1 : i;
+  }
+
+  /* ---------- zone forecast: NWS LOX coastal waters ----------
+     the same product the fishing page reads — one fetch carries the
+     synopsis and every zone's day-by-day text; the panel windows it to
+     the day of the selected forecast hour + 3 */
+  var CWF_ZONES = [
+    { id: 'PZZ650', label: 'Channel' },
+    { id: 'PZZ673', label: 'Outer waters' }
+  ];
+  var cwf = null;
+  var wxZone = 'PZZ650';
+  var wxDay = null;
+  function esc(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function fmtDay(iso) {
+    var p = iso.split('-');
+    var wd = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay();
+    return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][wd] + ' ' + (+p[1]) + '/' + (+p[2]);
+  }
+  function addDays(iso, n) {
+    var p = iso.split('-');
+    return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]) + n * 86400000).toISOString().slice(0, 10);
+  }
+  function wdOf(iso) {
+    var p = iso.split('-');
+    return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay();
+  }
+  function laToday() {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(new Date());
+  }
+  function parseCwf(text, issuanceIso) {
+    var issued = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(new Date(issuanceIso));
+    var WD = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    var out = { synopsis: '', updated: '', zones: {} };
+    text.split(/^\$\$\s*$/m).forEach(function (blk) {
+      var zm = blk.match(/^(PZZ\d{3})-[\d-]+\s*$/m);
+      if (!zm) return;
+      var zone = zm[1];
+      if (!out.updated) {
+        var um = blk.match(/^\d{3,4} [AP]M [A-Z]{3,4} \w{3} \w{3} \d+ \d{4}$/m);
+        if (um) out.updated = um[0];
+      }
+      var periods = [], headlines = [], cur = null;
+      blk.split('\n').forEach(function (ln) {
+        var hm = ln.match(/^\.\.\.(.+?)(\.\.\.)?\s*$/);
+        if (hm) {
+          /* ...SMALL CRAFT ADVISORY... style headline, not a period */
+          headlines.push(hm[1]);
+          cur = null;
+          return;
+        }
+        var m = ln.match(/^\.(.+?)\.\.\.(.*)$/);
+        if (m) {
+          cur = { name: m[1].trim(), text: m[2] };
+          periods.push(cur);
+        } else if (cur) {
+          cur.text += ' ' + ln.trim();
+        }
+      });
+      periods.forEach(function (p) { p.text = p.text.replace(/\s+/g, ' ').trim(); });
+      if (zone === 'PZZ600') {
+        /* the synopsis header wraps over several lines before its '...' */
+        var sm = blk.match(/\.Synopsis[\s\S]*?\.\.\.([\s\S]*)$/i);
+        if (sm) out.synopsis = sm[1].replace(/\s+/g, ' ').trim();
+        return;
+      }
+      /* walk the periods onto calendar days: night periods close a day,
+         weekday names snap the cursor (holiday names just flow through) */
+      var cursor = issued;
+      periods.forEach(function (p) {
+        var U = p.name.toUpperCase();
+        var wd = WD.indexOf(U.split(' ')[0]);
+        if (wd >= 0) {
+          /* snap to that weekday, but never commit a failed search */
+          var probe = cursor;
+          for (var s = 0; s < 7 && wdOf(probe) !== wd; s++) probe = addDays(probe, 1);
+          if (wdOf(probe) === wd) cursor = probe;
+        }
+        p.date = cursor;
+        p.night = /NIGHT$|^TONIGHT$|^OVERNIGHT$/.test(U);
+        if (p.night) cursor = addDays(cursor, 1);
+      });
+      out.zones[zone] = periods;
+      out.zones[zone].headlines = headlines;
+    });
+    return out;
+  }
+  /* model outlook for days past the NWS text: afternoon wind at the start
+     line (active forecast model) plus the marine model's wave height */
+  function zoneOutlook(date) {
+    var bits = [];
+    var i = wx.hours.length ? wx.hours.findIndex(function (h) {
+      return h.iso === date + 'T15:00';
+    }) : -1;
+    if (i >= 0) {
+      var wv = windAtHour(i, wx.startW);
+      if (wv) {
+        bits.push('wind ' + Math.round(wv.ws) + ' kn ' + compass16(wv.wd) +
+          ' in the afternoon');
+      }
+      if (wx.hours[i].wh != null) bits.push('seas about ' + Math.round(wx.hours[i].wh) + ' ft');
+    }
+    if (!bits.length) return null;
+    return 'model outlook: ' + bits.join(' · ') +
+      ' <span class="muted">— beyond the NWS zone text, lower confidence</span>';
+  }
+  function paintZoneWx() {
+    if (!cwf) return;
+    var wrap = document.getElementById('sail-wx');
+    var daysEl = document.getElementById('sail-wx-days');
+    if (!wrap || !daysEl) return;
+    var periods = cwf.zones[wxZone] || [];
+    var base = wxDay || laToday();
+    if (base < laToday()) base = laToday();
+    var end = addDays(base, 3);
+    var byDay = {};
+    periods.forEach(function (p) {
+      if (!p.date || p.date < base || p.date > end) return;
+      if (!byDay[p.date]) byDay[p.date] = { day: null, night: null };
+      if (p.night) { if (!byDay[p.date].night) byDay[p.date].night = p; }
+      else if (!byDay[p.date].day) byDay[p.date].day = p;
+    });
+    var html = '';
+    (periods.headlines || []).forEach(function (h) {
+      html += '<div class="fish-wx-alert">' + esc(h) + '</div>';
+    });
+    /* every windowed day gets a row: NWS text where it reaches, a model
+       outlook beyond its ~5-day horizon */
+    for (var dd = base; dd <= end; dd = addDays(dd, 1)) {
+      var e = byDay[dd];
+      if (e) {
+        html += '<div class="fish-wx-day"><b>' + fmtDay(dd) + '</b> — ' +
+          (e.day ? esc(e.day.text) : '') +
+          (e.night ? ' <span class="fish-wx-night">' + (e.day ? 'Night: ' : '(night) ') +
+            esc(e.night.text) + '</span>' : '') +
+          '</div>';
+      } else {
+        var o = zoneOutlook(dd);
+        html += '<div class="fish-wx-day"><b>' + fmtDay(dd) + '</b> — ' +
+          (o || '<span class="muted">beyond the forecast models’ reach</span>') +
+          '</div>';
+      }
+    }
+    daysEl.innerHTML = html;
+    wrap.hidden = false;
+  }
+  function loadZoneWx() {
+    fetch('https://api.weather.gov/products/types/CWF/locations/LOX/latest')
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !j.productText) return;
+        cwf = parseCwf(j.productText, j.issuanceTime);
+        var syn = document.getElementById('sail-wx-synopsis');
+        if (syn) syn.textContent = cwf.synopsis;
+        var upd = document.getElementById('sail-wx-updated');
+        if (upd && cwf.updated) upd.textContent = 'updated ' + cwf.updated;
+        var zw = document.getElementById('sail-wx-zones');
+        if (zw && !zw.firstChild) {
+          CWF_ZONES.forEach(function (zn) {
+            if (!cwf.zones[zn.id]) return;
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'fish-wx-zone' + (zn.id === wxZone ? ' is-active' : '');
+            b.textContent = zn.label + ' · ' + zn.id;
+            b.addEventListener('click', function () {
+              wxZone = zn.id;
+              Array.prototype.forEach.call(zw.children, function (c) {
+                c.classList.toggle('is-active', c === b);
+              });
+              paintZoneWx();
+            });
+            zw.appendChild(b);
+          });
+        }
+        paintZoneWx();
+      }).catch(function () { /* the panel just stays hidden */ });
+  }
+
   /* ---------- boot ---------- */
   function boot() {
     resizeCanvas();
@@ -1199,6 +1418,7 @@
       updateLegs(null);
     }
     loadForecast();
+    loadZoneWx();
     if (!reduceMotion) requestAnimationFrame(windTick);
     else windTick(performance.now());
   }
