@@ -1,11 +1,11 @@
 /* Live ride feed for /cycling/ — pulls season stats, weekly miles and
-   recent rides from the Strava relay (infra/strava-relay) and re-renders
-   the numbers baked into the page. The relay hears about new activities
-   from Strava's webhook the moment they upload, so every page view is
-   current. If the relay is unreachable the baked HTML simply stays as
-   it is. */
+   recent rides from the Intervals.icu relay (infra/intervals-relay) and
+   re-renders the numbers baked into the page. The relay hears about new
+   activities from Intervals.icu's webhook the moment they upload, so
+   every page view is current. If the relay is unreachable the baked HTML
+   simply stays as it is. */
 (function () {
-  var FEED_URL = 'https://strava-relay-924564512726.us-central1.run.app/feed';
+  var FEED_URL = 'https://intervals-relay-924564512726.us-central1.run.app/feed';
   var EVENT = { y: 2026, m: 9, d: 17 }; /* Ride Santa Barbara 100 (m is 0-based) */
   var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
     'August', 'September', 'October', 'November', 'December'];
@@ -144,7 +144,7 @@
     var d = new Date(iso);
     var h = d.getHours() % 12 || 12;
     var ampm = d.getHours() < 12 ? 'AM' : 'PM';
-    el.textContent = 'Ride data synced from Strava · Updated ' +
+    el.textContent = 'Ride data synced from Intervals.icu · Updated ' +
       MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() +
       ', ' + h + ':' + ('0' + d.getMinutes()).slice(-2) + ' ' + ampm;
   }

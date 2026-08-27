@@ -1,7 +1,7 @@
 {
-  "name": "strava-relay",
+  "name": "intervals-relay",
   "version": "1.0.0",
-  "description": "Strava relay for the remymargerum.com cycling page",
+  "description": "Intervals.icu relay for the remymargerum.com cycling page",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

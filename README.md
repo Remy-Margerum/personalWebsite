@@ -27,7 +27,7 @@ assets/js/pdf-viewer.js Pager logic for the document viewers
 assets/js/sailing.js    Sailing chart engine (projection, routes, wind field)
 assets/js/sailing-data.js SBYC marks/courses + shoreline geometry (generated)
 assets/js/cycling.js    Live ride feed — re-renders the cycling page from the
-                        Strava relay; baked HTML is the no-JS fallback
+                        Intervals.icu relay; baked HTML is the no-JS fallback
 assets/js/fishing.js    Fishing chart engine (SST isotherms, wash, wind field)
 assets/js/fishing-data.js Channel Islands shoreline + fishing spots (generated)
 assets/img/             Photos + favicon; assets/img/pdf/<slug>/ holds pre-rendered
@@ -36,10 +36,10 @@ assets/files/           Resume + academic PDFs (download links)
 infra/owntracks-relay/  Cloud Run relay for the live boat marker (service
                         owntracks-relay, project margerum; POST token lives
                         only in the Cloud Run env var, never in this repo)
-infra/strava-relay/     Cloud Run relay for the cycling page's live ride feed
-                        (service strava-relay, project margerum; Strava API
-                        credentials live only in Cloud Run env vars, never in
-                        this repo)
+infra/intervals-relay/  Cloud Run relay for the cycling page's live ride feed
+                        (service intervals-relay, project margerum; the
+                        Intervals.icu API key lives only in Cloud Run env
+                        vars, never in this repo)
 CNAME                   Custom domain for GitHub Pages (remymargerum.com)
 ```
 
@@ -69,60 +69,56 @@ GoDaddy — leave the nameservers alone): `@` A records →
 so GitHub can issue its certificate. Once the certificate is issued,
 enable "Enforce HTTPS" in the repo's Pages settings.
 
-## Cycling live data (Strava relay + webhook)
+## Cycling live data (Intervals.icu relay + webhook)
 
 The cycling page loads its numbers live: `assets/js/cycling.js` fetches
-`/feed` from `infra/strava-relay` on every visit, and the relay hears
-about new activities the moment they upload via Strava's webhook — the
-event busts the relay's cache and rebuilds the feed, so the page is
+`/feed` from `infra/intervals-relay` on every visit, and the relay hears
+about new activities the moment they upload via an Intervals.icu webhook —
+the event busts the relay's cache and rebuilds the feed, so the page is
 current as soon as a ride posts, with no daily rebuild and no manual
-refresh. The HTML baked into `cycling/index.html` is only the no-JS/SEO
-fallback; refresh it occasionally (or leave a scheduled job doing so) so
-crawlers see something reasonably fresh. The relay serves aggregates and
+refresh. Rides are recorded in the Cadence app, which auto-uploads to
+Intervals.icu; nothing in this chain touches Strava, whose API now
+requires a paid subscription.
+
+The HTML baked into `cycling/index.html` is only the no-JS/SEO fallback;
+refresh it occasionally (or leave a scheduled job doing so) so crawlers
+see something reasonably fresh. The relay serves aggregates and
 elevation-vs-distance curves only — no GPS coordinates, maps, or start
 locations ever leave it.
 
 One-time setup:
 
-1. Create a Strava API application at <https://www.strava.com/settings/api>
-   (category "Visualizer", callback domain `localhost`) — this gives the
-   client ID and secret.
-2. Get a refresh token with activity scope: open
-   `https://www.strava.com/oauth/authorize?client_id=<ID>&response_type=code&redirect_uri=http://localhost&approval_prompt=force&scope=activity:read_all`
-   in a browser, approve, copy the `code=` from the localhost redirect URL,
-   then exchange it:
+1. In Intervals.icu, open Settings and scroll to **Developer Settings**.
+   Generate a personal API key. The relay authenticates with HTTP Basic
+   auth as `API_KEY:<the key>`.
+2. Pick any random string as the webhook shared secret, e.g.
+   `openssl rand -hex 16`.
+3. Deploy (the service name/region must stay `intervals-relay` /
+   `us-central1` — the URL is hardcoded in `assets/js/cycling.js`):
 
    ```
-   curl -X POST https://www.strava.com/oauth/token \
-     -d client_id=<ID> -d client_secret=<SECRET> \
-     -d code=<CODE> -d grant_type=authorization_code
-   ```
-
-   The response's `refresh_token` is the long-lived credential.
-3. Deploy (the service name/region must stay `strava-relay` /
-   `us-central1` — the URL is hardcoded in `assets/js/cycling.js`).
-   `STRAVA_VERIFY_TOKEN` is any random string; it doubles as the secret
-   webhook path:
-
-   ```
-   gcloud run deploy strava-relay --source infra/strava-relay \
+   gcloud run deploy intervals-relay --source infra/intervals-relay \
      --project margerum --region us-central1 --allow-unauthenticated \
-     --set-env-vars STRAVA_CLIENT_ID=<ID>,STRAVA_CLIENT_SECRET=<SECRET>,STRAVA_REFRESH_TOKEN=<TOKEN>,STRAVA_VERIFY_TOKEN=<RANDOM>
+     --set-env-vars INTERVALS_API_KEY=<KEY>,INTERVALS_WEBHOOK_SECRET=<RANDOM>
    ```
-4. Register the webhook subscription (one per Strava application; Strava
-   immediately GETs the callback to validate it, which the relay answers):
 
-   ```
-   curl -X POST https://www.strava.com/api/v3/push_subscriptions \
-     -d client_id=<ID> -d client_secret=<SECRET> \
-     -d callback_url=https://strava-relay-924564512726.us-central1.run.app/webhook/<RANDOM> \
-     -d verify_token=<RANDOM>
-   ```
+   The first `/feed` request backfills the whole season in one API call,
+   so every ride already in Intervals.icu shows up immediately.
+4. Register the webhook: in Intervals.icu go to Settings → **Manage App**,
+   add the callback URL
+   `https://intervals-relay-924564512726.us-central1.run.app/webhook`
+   with the same shared secret, subscribed to `ACTIVITY_UPLOADED` and
+   `ACTIVITY_ANALYZED`.
+
+Optional env vars: `INTERVALS_ATHLETE_ID` (defaults to `0`, meaning the
+key's owner), `SEASON_START` (defaults to January 1 of the current year),
+`RIDE_TYPES` (defaults to `Ride,GravelRide,MountainBikeRide` — add
+`EBikeRide` or `VirtualRide` here if rides are missing from the page), and
+`RECENT_RIDES` (defaults to 8, the length of the Recent Rides list).
 
 The relay caches the feed for 15 minutes as a fallback for missed
 webhooks (`?fresh=1` can shorten that to 2 when debugging), and elevation
-profiles are cached per activity, so Strava API usage stays far under the
-free limits.
+profiles are cached per activity, so API usage stays minimal.
 
 ## Local preview
 
