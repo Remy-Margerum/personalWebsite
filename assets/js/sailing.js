@@ -1011,6 +1011,7 @@
       var ui = urlTimeIdx();
       if (ui != null) {
         scrub.value = Math.min(Math.max(ui, +scrub.min), +scrub.max);
+        syncUrl(); /* normalize the link to the hour actually shown */
       } else {
         scrub.value = wx.wedIdx >= wx.nowIdx && wx.wedIdx <= +scrub.max ? wx.wedIdx : scrub.max;
       }
@@ -1150,7 +1151,10 @@
       paintZoneWx();
     }
   }
-  scrub.addEventListener('input', applyHour);
+  scrub.addEventListener('input', function () {
+    applyHour();
+    syncUrl();
+  });
 
   /* step an hour either way, or jump back to beer-can time: next
      Wednesday 5 PM (all clamped to the active model's horizon) */
@@ -1161,6 +1165,7 @@
     if (!wx.hours.length) return;
     scrub.value = Math.min(Math.max(scrub.valueAsNumber + d, +scrub.min), +scrub.max);
     applyHour();
+    syncUrl();
   }
   backBtn.addEventListener('click', function () { stepHour(-1); });
   fwdBtn.addEventListener('click', function () { stepHour(1); });
@@ -1168,6 +1173,7 @@
     if (wx.wedIdx == null || wx.wedIdx < 0) return;
     scrub.value = Math.min(Math.max(wx.wedIdx, +scrub.min), +scrub.max);
     applyHour();
+    syncUrl();
   });
 
   /* ---------- live harbor wind (updates every 6 minutes) ---------- */
@@ -1221,6 +1227,22 @@
     if (!iso || !wx.hours.length) return null;
     var i = wx.hours.findIndex(function (h) { return h.iso >= iso; });
     return i < 0 ? wx.hours.length - 1 : i;
+  }
+  /* …and back out: scrubbing keeps the address bar on the selected hour,
+     so the current view is always copyable as a link */
+  function syncUrl() {
+    var h = wx.hours[scrub.valueAsNumber];
+    if (!h) return;
+    try {
+      var u = new URL(window.location.href);
+      u.searchParams.set('t', h.iso);
+      ['time', 'at', 'datetime', 'date', 'hour'].forEach(function (k) {
+        u.searchParams.delete(k);
+      });
+      /* the colon is query-legal — keep the copied link readable */
+      u.search = u.search.replace(/%3A/gi, ':');
+      window.history.replaceState(null, '', u);
+    } catch (e) { /* old browsers just keep the URL they came with */ }
   }
 
   /* ---------- zone forecast: NWS LOX coastal waters ----------
