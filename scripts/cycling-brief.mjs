@@ -11,8 +11,19 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const FEED = "https://intervals-relay-924564512726.us-central1.run.app/feed";
 const OUT = "assets/data/cycling-brief.json";
-/* Ride Santa Barbara 100 — the date the page counts down to */
-const EVENT = { name: "Ride Santa Barbara 100", date: "2026-10-17" };
+/* Ride Santa Barbara 100 — the date the page counts down to. The note's
+   job is the route decision: the flat-ish 100 km, or the same distance
+   with the timed Gibraltar ascent in it. Figures from ridesb100.com. */
+const EVENT = {
+  name: "Ride Santa Barbara 100",
+  date: "2026-10-17",
+  routes: [
+    { name: "100 KM Coastal", miles: 62, climb_ft: 4000, gibraltar: false },
+    { name: "100 KM + Climb", miles: 62, climb_ft: 6600, gibraltar: true },
+  ],
+  gibraltar: "6.1 miles at about 8%, gaining 2,551 ft — the ride's only " +
+    "competitively timed segment",
+};
 /* Santa Barbara, for the week's riding weather */
 const HOME = { lat: 34.42, lon: -119.7 };
 
@@ -124,23 +135,47 @@ async function main() {
 
   const system =
     "You write the weekly training note for remymargerum.com/cycling — a personal training log " +
-    "for one rider preparing for the Ride Santa Barbara 100, a century ride in the Santa Barbara " +
-    "foothills and coast. The rider trains on local loops: the Mesa, More Mesa, Hope Ranch, " +
-    "Goleta Beach, Butterfly Beach, and the foothill climbs behind town. Write the note for the " +
-    "week ahead from ONLY the data provided: 1) where training actually stands — read the weekly " +
-    "mileage trend honestly, whether volume is building, flat, or has dropped off, and what that " +
-    "means with the event this close; 2) what this week should look like, using the forecast to " +
-    "say which days suit a long ride and which suit a short or recovery spin, mentioning heat, " +
-    "wind or rain only when the numbers warrant it. Address the rider as 'you'. Be direct and " +
-    "encouraging without flattery — if the training is behind, say so plainly and say what would " +
-    "help most. Never invent numbers, ride names, routes, or events not in the data, and never " +
-    "give medical or injury advice. Output format: first line is a headline under 70 characters " +
-    "(no quotes, no trailing period); then a blank line; then the body, 110–170 words, plain " +
-    "prose, no headings or bullet lists.";
+    "for one rider preparing for the Ride Santa Barbara 100. The rider trains on local loops: " +
+    "the Mesa, More Mesa, Hope Ranch, Goleta Beach, Butterfly Beach, and the foothill climbs " +
+    "behind town.\n\n" +
+    "THE CENTRAL QUESTION, and the spine of every note you write: the rider is choosing between " +
+    "two routes of the same distance — the 100 KM Coastal, and the 100 KM + Climb, which is the " +
+    "same 62 miles with the timed Gibraltar ascent in it. Gibraltar is the whole difference: " +
+    "about 2,600 ft of the route's extra climbing in one 6.1-mile, 8% push. So judge the training " +
+    "on two axes, and say plainly where it stands on each: DISTANCE — do the weekly volume and " +
+    "the longest single ride support 62 miles at all; and CLIMBING — does the elevation gain per " +
+    "ride, and the biggest climb done so far, support Gibraltar on tired legs after 30+ miles. " +
+    "Volume that supports the coastal route does not by itself support the climb. Name which " +
+    "route the current training actually points to, and what would have to change in the weeks " +
+    "left for the climb version to be the honest call.\n\n" +
+    "Write the note for the week ahead from ONLY the data provided: 1) where training stands " +
+    "against those two routes, reading the weekly mileage and climbing trend honestly — building, " +
+    "flat, or dropped off — and what that means with the event this close; 2) what this week " +
+    "should look like, using the forecast to say which days suit a long ride or a climbing day " +
+    "and which suit a short spin, mentioning heat, wind or rain only when the numbers warrant it. " +
+    "Address the rider as 'you'. Be direct and encouraging without flattery — if the training is " +
+    "behind for the route in question, say so plainly and say what would help most. Never invent " +
+    "numbers, ride names, routes, or events not in the data, and never give medical or injury " +
+    "advice. Output format: first line is a headline under 70 characters (no quotes, no trailing " +
+    "period); then a blank line; then the body, 110–170 words, plain prose, no headings or " +
+    "bullet lists.";
+
+  /* longest ride and biggest single climb are the two numbers the route
+     decision actually turns on, so hand them over already computed */
+  const allRides = feed.rides || [];
+  const longest = allRides.reduce((a, r) => (r.mi > (a?.mi ?? -1) ? r : a), null);
+  const steepest = allRides.reduce((a, r) => (r.ft > (a?.ft ?? -1) ? r : a), null);
 
   const user =
     `Week ahead: ${week} (note drafted ${fmtDay(today)}).\n` +
     `${EVENT.name} is ${EVENT.date} — ${toEvent} days out.\n\n` +
+    `Route options being weighed:\n` +
+    EVENT.routes.map((r) => ` - ${r.name}: ${r.miles} miles, about ${r.climb_ft} ft of climbing` +
+      (r.gibraltar ? ` (includes Gibraltar — ${EVENT.gibraltar})` : "")).join("\n") + `\n\n` +
+    (longest ? `Longest ride in the recent list: ${longest.mi} mi with ${longest.ft} ft climbed ` +
+      `(${fmtDay(longest.date)}).\n` : "") +
+    (steepest ? `Most climbing in a single recent ride: ${steepest.ft} ft over ${steepest.mi} mi ` +
+      `(${fmtDay(steepest.date)}).\n\n` : "\n") +
     `Season to date: ${feed.season.rides} rides, ${feed.season.mi} miles, ` +
     `${feed.season.ft} ft climbed, ${fmtHM(feed.season.sec)} riding time.\n\n` +
     `Miles per week, oldest to newest (the last entry is the week in progress):\n` +
