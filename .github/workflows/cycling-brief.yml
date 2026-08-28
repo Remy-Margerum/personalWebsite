@@ -26,6 +26,7 @@ jobs:
       - name: Generate the note
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
         run: node scripts/cycling-brief.mjs
       - name: Commit if changed
         run: |

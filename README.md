@@ -26,8 +26,10 @@ assets/css/style.css    All styling; design tokens in :root
 assets/js/pdf-viewer.js Pager logic for the document viewers
 assets/js/sailing.js    Sailing chart engine (projection, routes, wind field)
 assets/js/sailing-data.js SBYC marks/courses + shoreline geometry (generated)
-assets/js/cycling.js    Live ride feed — re-renders the cycling page from the
-                        Intervals.icu relay; baked HTML is the no-JS fallback
+assets/js/cycling.js    Live ride feed, today's temperature curve, and the
+                        weekly AI note; baked HTML is the no-JS fallback
+scripts/               Scheduled generators run by GitHub Actions —
+                        fishing-brief.mjs and cycling-brief.mjs
 assets/js/fishing.js    Fishing chart engine (SST isotherms, wash, wind field)
 assets/js/fishing-data.js Channel Islands shoreline + fishing spots (generated)
 assets/img/             Photos + favicon; assets/img/pdf/<slug>/ holds pre-rendered
@@ -139,6 +141,44 @@ per rebuild, so API usage stays minimal even at a short TTL. Note that
 Intervals.icu does not fire activity webhooks for rides that arrived there
 from Strava — ours come straight from Cadence, so that limitation does not
 apply.
+
+A ride can reach Intervals.icu by more than one path — straight from the
+recording app and again through a connected service — and lands as two
+activities with identical numbers. Both the relay and the brief generator
+drop those: same day, same distance, same moving time and same elevation
+gain counts once. The relay logs how many it dropped, which is the signal
+that a sync is doubling up and worth fixing at the source.
+
+## Weekly notes (fishing and cycling)
+
+Both pages carry a short AI-written note, generated Wednesday mornings by
+GitHub Actions (`.github/workflows/*-brief.yml`, generators in `scripts/`)
+and committed as JSON under `assets/data/`. The pages hide a note older
+than 8 days, so a missed run degrades to nothing rather than to stale
+advice.
+
+- **Fishing** (`fishing-brief.mjs`) drafts the coming weekend's outlook
+  from the NWS coastal waters forecast and Open-Meteo wind/wave/SST at the
+  chart's grounds.
+- **Cycling** (`cycling-brief.mjs`) judges training against the two Ride
+  Santa Barbara 100 routes — the 100 KM Coastal, and the 100 KM + Climb
+  with the timed Gibraltar ascent — and ends with a plan for the week
+  including when to rest.
+
+The cycling generator reads Intervals.icu **directly**, not through the
+relay, because it uses far more than the page shows: power, heart rate,
+cadence, per-ride training load and intensity, aerobic decoupling, plus
+daily fitness (CTL), fatigue (ATL), form, ramp rate, resting HR, HRV,
+sleep and weight. Keeping that path private means those metrics shape the
+prose but never appear in the published JSON — the website still shows
+only distance, elevation and time. Intervals.icu has renamed several of
+these fields over the years, so the generator reads each by a list of
+aliases and logs a `field coverage` line naming what it actually found;
+if a metric starts showing `NO` in the action log, that is the rename to
+chase, not a training change.
+
+Secrets required: `ANTHROPIC_API_KEY` (both) and `INTERVALS_API_KEY`
+(cycling only — the same personal API key the relay uses).
 
 ## Local preview
 

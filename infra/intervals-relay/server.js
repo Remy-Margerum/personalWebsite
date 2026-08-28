@@ -68,6 +68,25 @@ function seasonStart() {
   return process.env.SEASON_START || todayPacific().slice(0, 4) + '-01-01';
 }
 
+/* One ride can reach Intervals.icu by more than one path — straight from
+   the recording app and again through a connected service — landing as two
+   activities with identical numbers. Same day, same distance to the metre
+   and same moving time is a duplicate, not two rides; keep the first. */
+function dedupe(acts) {
+  const seen = new Set();
+  return acts.filter(a => {
+    const key = [
+      a.start_date_local.slice(0, 10),
+      Math.round(a.distance || 0),
+      a.moving_time || 0,
+      Math.round(a.total_elevation_gain || 0)
+    ].join('|');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 /* every outdoor ride of the season — one call, and the first build after a
    deploy backfills the whole season in it */
 async function seasonRides() {
@@ -75,8 +94,13 @@ async function seasonRides() {
     .toISOString().slice(0, 10); /* pad for timezone skew */
   const all = await api('/athlete/' + ATHLETE + '/activities' +
     '?oldest=' + seasonStart() + '&newest=' + newest);
-  return (Array.isArray(all) ? all : []).filter(a =>
+  const rides = (Array.isArray(all) ? all : []).filter(a =>
     RIDE_TYPES.includes(a.type) && !a.trainer && !a.indoor);
+  const unique = dedupe(rides);
+  if (unique.length !== rides.length) {
+    console.log('dropped ' + (rides.length - unique.length) + ' duplicate activities');
+  }
+  return unique;
 }
 
 /* the streams response has been served both as an array of {type,data} and
