@@ -67,6 +67,24 @@
       margin: 0 auto;
     }
     .updated { text-align: center; font-size: .9rem; color: var(--muted); margin-top: 2.5rem; font-style: italic; }
+    .ride-brief {
+      font-style: italic;
+      color: var(--muted);
+      text-align: center;
+      max-width: var(--measure);
+      margin: 1.9rem auto 0;
+      font-size: 1.05rem;
+    }
+    .ride-brief-sig { color: var(--brown); white-space: nowrap; }
+    .wx-note {
+      text-align: center;
+      font-size: .82rem;
+      color: var(--muted);
+      margin-top: .9rem;
+      font-style: italic;
+    }
+    .wx-note a { color: inherit; }
+    #ride-wx-chart svg { cursor: crosshair; }
   </style>
 </head>
 <body>
@@ -112,6 +130,20 @@
       <p class="event-note">Riding the Santa Barbara foothills and coast &mdash; currently training for the
       <a href="https://ridesb100.com/" target="_blank" rel="noopener">Ride Santa Barbara 100</a>,
       October 17, 2026 &mdash; <span id="days-out">70 days out</span>.</p>
+
+      <p class="ride-brief" id="ride-brief" hidden><span id="ride-brief-body"></span>
+      <span class="ride-brief-sig">&mdash;&nbsp;Claude</span></p>
+    </div>
+  </section>
+
+  <section class="section section--tight" id="ride-wx-section" hidden>
+    <div class="container">
+      <div class="section-head">
+        <span class="eyebrow">Today in Santa Barbara</span>
+      </div>
+      <div class="chart-wrap" id="ride-wx-chart"></div>
+      <p class="wx-note">Hourly temperature, sunrise to sunset &middot; forecast from
+      <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a></p>
     </div>
   </section>
 

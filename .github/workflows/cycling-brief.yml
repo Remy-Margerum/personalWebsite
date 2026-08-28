@@ -1,4 +1,4 @@
-name: Fishing weekend brief
+name: Cycling training note
 
 on:
   schedule:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: fishing-brief
+  group: cycling-brief
   cancel-in-progress: false
 
 jobs:
@@ -23,13 +23,13 @@ jobs:
       - name: Install dependencies
         working-directory: scripts
         run: npm install --no-fund --no-audit
-      - name: Generate the brief
+      - name: Generate the note
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: node scripts/fishing-brief.mjs
+        run: node scripts/cycling-brief.mjs
       - name: Commit if changed
         run: |
-          git add assets/data/fishing-brief.json
+          git add assets/data/cycling-brief.json
           # staged diff — a plain diff misses the file when it is brand-new
           if git diff --cached --quiet; then
             echo "No change."
@@ -37,5 +37,5 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Update fishing weekend brief"
+          git commit -m "Update cycling training note"
           git push
