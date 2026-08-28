@@ -149,6 +149,137 @@
       ', ' + h + ':' + ('0' + d.getMinutes()).slice(-2) + ' ' + ampm;
   }
 
+  /* ---------- today's temperature, sunrise to sunset ----------
+     One series, so no legend: the section heading names it. Direct labels
+     only on the day's high and the two ends; the axis stays recessive.
+     Geometry matches the weekly-miles chart (760x230, baseline y=200). */
+  var WX_URL = 'https://api.open-meteo.com/v1/forecast?latitude=34.42&longitude=-119.7' +
+    '&timezone=America%2FLos_Angeles&forecast_days=1&temperature_unit=fahrenheit' +
+    '&hourly=temperature_2m&daily=sunrise,sunset';
+
+  function hhmmToMin(s) {          /* "2026-08-28T06:32" -> minutes past midnight */
+    var t = s.slice(11);
+    return +t.slice(0, 2) * 60 + +t.slice(3, 5);
+  }
+  function clockLabel(min) {
+    var h = Math.floor(min / 60), m = min % 60;
+    var ampm = h < 12 ? 'AM' : 'PM';
+    return (h % 12 || 12) + (m ? ':' + ('0' + m).slice(-2) : '') + ' ' + ampm;
+  }
+
+  function renderWx(j) {
+    var sec = document.getElementById('ride-wx-section');
+    var wrap = document.getElementById('ride-wx-chart');
+    if (!sec || !wrap || !j || !j.hourly || !j.daily) return;
+    var rise = hhmmToMin(j.daily.sunrise[0]), set = hhmmToMin(j.daily.sunset[0]);
+    var pts = [], i;
+    for (i = 0; i < j.hourly.time.length; i++) {
+      var min = hhmmToMin(j.hourly.time[i]), t = j.hourly.temperature_2m[i];
+      if (min >= rise && min <= set && t != null) pts.push({ min: min, t: t });
+    }
+    if (pts.length < 3) return;
+
+    var L = 10, R = 750, TOP = 34, BASE = 200;
+    var lo = pts[0].t, hi = pts[0].t, iHi = 0;
+    for (i = 1; i < pts.length; i++) {
+      if (pts[i].t < lo) lo = pts[i].t;
+      if (pts[i].t > hi) { hi = pts[i].t; iHi = i; }
+    }
+    var span = Math.max(hi - lo, 1);
+    var X = function (min) { return L + (R - L) * (min - rise) / Math.max(set - rise, 1); };
+    var Y = function (t) { return BASE - (t - lo) / span * (BASE - TOP); };
+
+    var line = pts.map(function (p) { return X(p.min).toFixed(1) + ',' + Y(p.t).toFixed(1); }).join(' ');
+    var x0 = X(pts[0].min).toFixed(1), x1 = X(pts[pts.length - 1].min).toFixed(1);
+
+    var s = '<svg viewBox="0 0 760 230" role="img" aria-label="Hourly temperature in Santa Barbara from ' +
+      clockLabel(rise) + ' to ' + clockLabel(set) + ', low ' + Math.round(lo) +
+      ' to high ' + Math.round(hi) + ' degrees Fahrenheit">' +
+      '<defs><linearGradient id="wxfill" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#7f4c29" stop-opacity="0.18"/>' +
+      '<stop offset="1" stop-color="#7f4c29" stop-opacity="0.02"/>' +
+      '</linearGradient></defs>' +
+      '<polygon points="' + x0 + ',' + BASE + ' ' + line + ' ' + x1 + ',' + BASE + '" fill="url(#wxfill)"/>' +
+      '<polyline points="' + line + '" fill="none" stroke="#7f4c29" stroke-width="2" ' +
+      'stroke-linejoin="round" stroke-linecap="round"/>';
+
+    /* the day's high, direct-labelled — the one number worth reading off */
+    var hx = X(pts[iHi].min), hy = Y(pts[iHi].t);
+    s += '<g id="wx-high"><circle cx="' + hx.toFixed(1) + '" cy="' + hy.toFixed(1) + '" r="4.5" fill="#7f4c29"/>' +
+      '<text x="' + hx.toFixed(1) + '" y="' + (hy - 12).toFixed(1) + '" text-anchor="middle" ' +
+      'font-size="14" fill="#222222">' + Math.round(hi) + '&#176;</text></g>';
+
+    /* ends: sunrise and sunset, labelled with their clock times */
+    s += '<line x1="10" y1="' + BASE + '" x2="750" y2="' + BASE + '" stroke="#e8e2da" stroke-width="1"/>' +
+      '<text x="' + x0 + '" y="222" text-anchor="start" font-size="12" fill="#6b6560">&#9788; ' +
+      clockLabel(rise) + '</text>' +
+      '<text x="' + x1 + '" y="222" text-anchor="end" font-size="12" fill="#6b6560">' +
+      clockLabel(set) + ' &#9790;</text>';
+
+    /* hover crosshair — the chart is on a page, so let people read any hour */
+    s += '<g id="wx-hover" opacity="0">' +
+      '<line y1="' + TOP + '" y2="' + BASE + '" stroke="#7f4c29" stroke-width="1" opacity="0.35"/>' +
+      '<circle r="4" fill="#7f4c29"/>' +
+      '<text text-anchor="middle" font-size="13" fill="#222222"></text></g>' +
+      '<rect x="10" y="0" width="740" height="' + BASE + '" fill="transparent" id="wx-hit"/></svg>';
+    wrap.innerHTML = s;
+    sec.hidden = false;
+
+    var svg = wrap.querySelector('svg');
+    var g = svg.querySelector('#wx-hover');
+    var hLine = g.querySelector('line'), hDot = g.querySelector('circle'), hText = g.querySelector('text');
+    var high = svg.querySelector('#wx-high'); /* hidden while hovering: the
+      crosshair label would otherwise collide with it at the peak */
+    function move(ev) {
+      var box = svg.getBoundingClientRect();
+      var vx = (ev.clientX - box.left) / box.width * 760;
+      var best = 0, bestD = Infinity;
+      for (var k = 0; k < pts.length; k++) {
+        var d = Math.abs(X(pts[k].min) - vx);
+        if (d < bestD) { bestD = d; best = k; }
+      }
+      var px = X(pts[best].min), py = Y(pts[best].t);
+      hLine.setAttribute('x1', px); hLine.setAttribute('x2', px);
+      hDot.setAttribute('cx', px); hDot.setAttribute('cy', py);
+      hText.setAttribute('x', Math.min(Math.max(px, 40), 720));
+      hText.setAttribute('y', Math.max(py - 14, 14));
+      hText.textContent = Math.round(pts[best].t) + '\u00b0 at ' + clockLabel(pts[best].min);
+      g.setAttribute('opacity', '1');
+      high.setAttribute('opacity', '0');
+    }
+    svg.addEventListener('pointermove', move);
+    svg.addEventListener('pointerleave', function () {
+      g.setAttribute('opacity', '0');
+      high.setAttribute('opacity', '1');
+    });
+  }
+
+  function loadWx() {
+    fetch(WX_URL).then(function (r) {
+      return r.ok ? r.json() : null;
+    }).then(renderWx).catch(function () { /* no forecast — section stays hidden */ });
+  }
+
+  /* ---------- weekly AI training note (written by a scheduled action) ---------- */
+  function loadBrief() {
+    fetch('/assets/data/cycling-brief.json').then(function (r) {
+      return r.ok ? r.json() : null;
+    }).then(function (j) {
+      if (!j || !j.generated || !j.body) return;
+      var age = (Date.now() - new Date(j.generated).getTime()) / 86400000;
+      /* drafted Wednesday mornings for the week ahead; a missed run drops
+         off after about a week rather than showing a stale plan */
+      if (age > 8) return;
+      var wrap = document.getElementById('ride-brief');
+      var body = document.getElementById('ride-brief-body');
+      if (!wrap || !body) return;
+      body.textContent = j.body;
+      wrap.title = (j.week ? 'Week of ' + j.week + ' \u2014 ' : '') +
+        'AI-drafted ' + longDate(j.generated.slice(0, 10)) + ' from this page\u2019s ride data';
+      wrap.hidden = false;
+    }).catch(function () {});
+  }
+
   function render(feed) {
     renderSeason(feed.season);
     renderWeeks(feed.weeks);
@@ -157,6 +288,8 @@
   }
 
   updateDaysOut();
+  loadBrief();
+  loadWx();
   fetch(FEED_URL)
     .then(function (r) {
       if (!r.ok) throw new Error('feed ' + r.status);

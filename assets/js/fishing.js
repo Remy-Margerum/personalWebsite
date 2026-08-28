@@ -1577,14 +1577,16 @@
       ' <span class="muted">— beyond the NWS zone text, lower confidence</span>';
   }
 
-  /* ---------- daily AI weekend brief (written by a scheduled action) ---------- */
+  /* ---------- weekly AI weekend brief (written by a scheduled action) ---------- */
   function loadBrief() {
     fetch('/assets/data/fishing-brief.json').then(function (r) {
       return r.ok ? r.json() : null;
     }).then(function (j) {
       if (!j || !j.generated || !j.body) return;
       var age = (Date.now() - new Date(j.generated).getTime()) / 86400000;
-      if (age > 4) return; /* stale briefs stay hidden */
+      /* drafted Wednesday mornings, so it has to survive the weekend it
+         describes; a missed run drops off after about a week */
+      if (age > 8) return;
       var wrap = document.getElementById('fish-brief');
       var body = document.getElementById('fish-brief-body');
       if (!wrap || !body) return;
