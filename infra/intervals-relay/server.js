@@ -13,7 +13,10 @@
                     the shared secret, which is what authenticates the
                     call; an ACTIVITY_UPLOADED/ANALYZED event busts the
                     cache and rebuilds, so the page is current the moment
-                    a ride finishes uploading.
+                    a ride finishes uploading. Webhooks require an approved
+                    Intervals.icu OAuth app; until one exists the feed just
+                    refreshes on its own every FEED_TTL_MS, which is the
+                    only difference in behaviour.
 
    Env: INTERVALS_API_KEY (Settings → Developer Settings),
         INTERVALS_WEBHOOK_SECRET, and optionally INTERVALS_ATHLETE_ID
@@ -32,7 +35,10 @@ const WEBHOOK_SECRET = process.env.INTERVALS_WEBHOOK_SECRET || '';
 const RIDE_TYPES = (process.env.RIDE_TYPES || 'Ride,GravelRide,MountainBikeRide')
   .split(',').map(s => s.trim()).filter(Boolean);
 
-const TTL_MS = 15 * 60 * 1000;       /* normal cache life of the feed */
+const TTL_MS =                       /* cache life of the feed. Also the
+                                        worst-case staleness while no webhook
+                                        is registered, so it is tunable. */
+  +process.env.FEED_TTL_MS || 15 * 60 * 1000;
 const FRESH_MS = 2 * 60 * 1000;      /* floor between ?fresh=1 rebuilds */
 const EVENT_DELAY_MS =               /* settle time before a webhook rebuild,
                                         coalescing upload/analyze bursts */

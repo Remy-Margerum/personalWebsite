@@ -104,21 +104,35 @@ One-time setup:
 
    The first `/feed` request backfills the whole season in one API call,
    so every ride already in Intervals.icu shows up immediately.
-4. Register the webhook: in Intervals.icu go to Settings → **Manage App**,
-   add the callback URL
+4. **Webhook (optional, and it needs approval).** Intervals.icu attaches
+   webhooks to OAuth apps, not to personal API keys, so a "Manage App"
+   link only appears once you own an app. To get one, apply at
+   <https://intervals.icu/oauth/apply> while logged in (name, description,
+   website `https://remymargerum.com`, a square logo ≥128×128, the privacy
+   policy URL, and a redirect URI — `https://remymargerum.com/cycling/`
+   serves, since the relay never runs the OAuth flow). The app starts
+   *Pending*; once approved it appears under `/settings/apps`, and its
+   **Manage App** page is where the callback URL
    `https://intervals-relay-924564512726.us-central1.run.app/webhook`
-   with the same shared secret, subscribed to `ACTIVITY_UPLOADED` and
-   `ACTIVITY_ANALYZED`.
+   goes, with the same shared secret, subscribed to `ACTIVITY_UPLOADED`
+   and `ACTIVITY_ANALYZED`.
+
+   Skipping this step costs very little: without a webhook the relay simply
+   rebuilds when its cache expires, so the page is at worst `FEED_TTL_MS`
+   old (15 minutes by default) instead of instant.
 
 Optional env vars: `INTERVALS_ATHLETE_ID` (defaults to `0`, meaning the
 key's owner), `SEASON_START` (defaults to January 1 of the current year),
 `RIDE_TYPES` (defaults to `Ride,GravelRide,MountainBikeRide` — add
-`EBikeRide` or `VirtualRide` here if rides are missing from the page), and
-`RECENT_RIDES` (defaults to 8, the length of the Recent Rides list).
+`EBikeRide` or `VirtualRide` here if rides are missing from the page),
+`RECENT_RIDES` (defaults to 8, the length of the Recent Rides list), and
+`FEED_TTL_MS` (defaults to 900000 = 15 minutes).
 
-The relay caches the feed for 15 minutes as a fallback for missed
-webhooks (`?fresh=1` can shorten that to 2 when debugging), and elevation
-profiles are cached per activity, so API usage stays minimal.
+Elevation profiles are cached per activity and the season list is one call
+per rebuild, so API usage stays minimal even at a short TTL. Note that
+Intervals.icu does not fire activity webhooks for rides that arrived there
+from Strava — ours come straight from Cadence, so that limitation does not
+apply.
 
 ## Local preview
 
