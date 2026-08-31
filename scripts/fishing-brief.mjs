@@ -1,4 +1,4 @@
-/* Daily weekend-outlook brief for /fishing/.
+/* Weekend-outlook brief for /fishing/, regenerated Mondays and Wednesdays.
    Gathers the NWS coastal waters forecast and Open-Meteo wind/wave/SST
    model data for the chart's grounds, has Claude draft a short brief for
    the coming weekend, and writes assets/data/fishing-brief.json for the
@@ -145,7 +145,7 @@ async function main() {
   }
 
   const system =
-    "You write the daily 'weekend outlook' for remymargerum.com/fishing — a private-boater's " +
+    "You write the twice-weekly 'weekend outlook' for remymargerum.com/fishing — a private-boater's " +
     "chart of the Santa Barbara Channel and outer islands. The audience runs a small sportboat " +
     "out of Santa Barbara Harbor. The chart's target programs and their grounds: bluefin tuna " +
     "on the 64–68 °F temperature break (Santa Rosa Flats ~40 nm, Osborn Bank SW flank ~68 nm, " +

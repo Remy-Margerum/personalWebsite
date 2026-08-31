@@ -1584,8 +1584,9 @@
     }).then(function (j) {
       if (!j || !j.generated || !j.body) return;
       var age = (Date.now() - new Date(j.generated).getTime()) / 86400000;
-      /* drafted Wednesday mornings, so it has to survive the weekend it
-         describes; a missed run drops off after about a week */
+      /* drafted Monday and Wednesday mornings; the Wednesday one has to
+         survive the weekend it describes, and a stretch of missed runs
+         drops off after about a week */
       if (age > 8) return;
       var wrap = document.getElementById('fish-brief');
       var body = document.getElementById('fish-brief-body');
