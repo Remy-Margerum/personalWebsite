@@ -1,34 +1,34 @@
-/* Live ride feed for /cycling/ — pulls season stats, weekly miles and
-   recent rides from the Intervals.icu relay (infra/intervals-relay) and
-   re-renders the numbers baked into the page. The relay hears about new
-   activities from Intervals.icu's webhook the moment they upload, so
-   every page view is current. If the relay is unreachable the baked HTML
-   simply stays as it is. */
+/* /cycling/ page script. Loads assets/data/cycling/feed.json — written by
+   the cycling-rides GitHub Action from Intervals.icu — and re-renders the
+   season stats, weekly chart and ride list with the shared renderer
+   (cycling-render.js); the HTML baked into the page is the no-JS fallback.
+   "Ride details" opens a panel built from assets/data/cycling/rides/<id>.json:
+   stat tiles, distance-aligned charts with a shared crosshair, climbs, best
+   efforts, time in zones, laps and mile splits. Also the days-out counter,
+   the weekly AI note and today's temperature curve. */
 (function () {
-  var FEED_URL = 'https://intervals-relay-924564512726.us-central1.run.app/feed';
-  var EVENT = { y: 2026, m: 9, d: 17 }; /* Ride Santa Barbara 100 (m is 0-based) */
-  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
-    'August', 'September', 'October', 'November', 'December'];
-  var MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul',
-    'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var R = window.CyclingRender;
+  if (!R) return;
+  var FEED_URL = '/assets/data/cycling/feed.json';
+  var RIDE_DIR = '/assets/data/cycling/rides/';
+  var RECENT = 8;                             /* rides shown before "show all" */
+  var EVENT = { y: 2026, m: 9, d: 17 };       /* Ride Santa Barbara 100 (m is 0-based) */
+  var BROWN = R.colors.brown, INK = R.colors.ink, MUTED = R.colors.muted, LINE = R.colors.line;
+  var PAPER = '#ffffff';
+  /* ordered ramp for zone bars, light → dark */
+  var ZONE_RAMP = ['#cbaa89', '#bb9370', '#a97c58', '#956542', '#7f4f2f', '#67391f', '#4d2712'];
+  var MONTHS = R.MONTHS;
+  var esc = R.esc, fmtInt = R.fmtInt, fmtHMS = R.fmtHMS, longDate = R.longDate;
+  var DASH = '–';
+  var feed = null, showingAll = false;
 
-  function esc(s) {
-    return String(s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
-  function fmtInt(n) { return Math.round(n).toLocaleString('en-US'); }
-  function fmtHM(sec) {
-    var m = Math.floor(sec / 60);
-    return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2);
-  }
-  function parseYMD(s) {
-    var p = s.split('-');
-    return { y: +p[0], m: +p[1] - 1, d: +p[2] };
-  }
-  function longDate(s) {
-    var p = parseYMD(s);
-    return MONTHS[p.m] + ' ' + p.d + ', ' + p.y;
+  function clamp(v, lo, hi) { return Math.min(Math.max(v, lo), hi); }
+  function closest(el, cls) {
+    while (el && el.nodeType === 1) {
+      if (el.classList && el.classList.contains(cls)) return el;
+      el = el.parentNode;
+    }
+    return null;
   }
 
   /* "October 17, 2026 — 53 days out." — recount on every visit */
@@ -43,110 +43,445 @@
     else if (days === 0) el.textContent = 'today';
   }
 
-  function renderSeason(season) {
-    var vals = {
-      rides: fmtInt(season.rides),
-      miles: fmtInt(season.mi),
-      feet: fmtInt(season.ft),
-      hours: fmtHM(season.sec)
-    };
-    var els = document.querySelectorAll('.stat-row [data-stat]');
-    for (var i = 0; i < els.length; i++) {
-      var k = els[i].getAttribute('data-stat');
-      if (vals[k] != null) els[i].textContent = vals[k];
-    }
+  /* ---------- weekly miles: hover readout on the bars ---------- */
+  function weekLabel(start) {
+    var p = R.parseYMD(start);
+    var end = new Date(Date.UTC(p.y, p.m, p.d + 6));
+    return R.MONTHS_SHORT[p.m] + ' ' + p.d + '–' +
+      (end.getUTCMonth() === p.m ? '' : R.MONTHS_SHORT[end.getUTCMonth()] + ' ') + end.getUTCDate();
   }
-
-  /* bar chart, same geometry as the baked SVG: 760×230 box, baseline at
-     y=200, 12 Monday-week slots, value labels on the biggest week and the
-     current (in-progress, faded) one */
-  function renderWeeks(weeks) {
-    var wrap = document.getElementById('weekly-chart');
-    if (!wrap || !weeks || !weeks.length) return;
-    var SPAN = 740 / weeks.length, BAR = 34.5, MAXH = 152;
-    var maxMi = 0, iMax = 0, i;
-    for (i = 0; i < weeks.length; i++) {
-      if (weeks[i].mi > maxMi) { maxMi = weeks[i].mi; iMax = i; }
+  function bindWeeks(weeks) {
+    var svg = document.querySelector('#weekly-chart svg');
+    if (!svg || !weeks) return;
+    var hover = svg.querySelector('.wk-hover');
+    if (!hover) return;
+    var bars = svg.querySelectorAll('.wk-bar'), k;
+    function leave() {
+      hover.setAttribute('opacity', '0');
+      for (k = 0; k < bars.length; k++) bars[k].classList.remove('is-hot');
     }
-    var s = '<svg viewBox="0 0 760 230" role="img" aria-label="Miles ridden per week, last ' +
-      weeks.length + ' weeks">';
-    for (i = 0; i < weeks.length; i++) {
-      var cx = (10 + SPAN * (i + 0.5)).toFixed(1);
-      var cur = i === weeks.length - 1;
-      var mi = weeks[i].mi;
-      if (mi > 0 && maxMi > 0) {
-        var h = Math.max(mi / maxMi * MAXH, 2);
-        var top = 200 - h;
-        s += '<rect x="' + (10 + SPAN * (i + 0.5) - BAR / 2).toFixed(1) + '" y="' + top.toFixed(1) +
-          '" width="' + BAR + '" height="' + h.toFixed(1) + '" rx="1" fill="#7f4c29"' +
-          (cur ? ' opacity="0.45"' : '') + '/>';
-        if (i === iMax || cur) {
-          s += '<text x="' + cx + '" y="' + (top - 7).toFixed(1) +
-            '" text-anchor="middle" font-size="13" fill="#222222">' + Math.round(mi) + '</text>';
-        }
+    svg.addEventListener('pointermove', function (ev) {
+      var hit = closest(ev.target, 'wk-hit');
+      var i = hit ? +hit.getAttribute('data-i') : -1, w = weeks[i];
+      if (!w) { leave(); return; }
+      var span = 740 / weeks.length;
+      hover.setAttribute('x', clamp(10 + span * (i + 0.5), 120, 640).toFixed(1));
+      hover.textContent = weekLabel(w.start) + ' · ' + (+w.mi).toFixed(1) + ' mi' +
+        (w.rides != null ? ' · ' + w.rides + (w.rides === 1 ? ' ride' : ' rides') : '') +
+        (w.ft ? ' · ' + fmtInt(w.ft) + ' ft' : '');
+      hover.setAttribute('opacity', '1');
+      for (k = 0; k < bars.length; k++) {
+        bars[k].classList.toggle('is-hot', +bars[k].getAttribute('data-i') === i);
       }
-      if (i % 2 === 0) {
-        var p = parseYMD(weeks[i].start);
-        s += '<text x="' + cx + '" y="222" text-anchor="middle" font-size="12" fill="#6b6560">' +
-          MONTHS_SHORT[p.m] + ' ' + p.d + '</text>';
-      }
-    }
-    s += '<line x1="10" y1="200" x2="750" y2="200" stroke="#e8e2da" stroke-width="1"/></svg>';
-    wrap.innerHTML = s;
+    });
+    svg.addEventListener('pointerleave', leave);
   }
 
-  /* elevation sparkline, same geometry as the baked SVGs: 280×64 box,
-     x 4→276, min altitude at y=60, max at y=4 */
-  function spark(alt) {
-    if (!alt || alt.length < 2) return '';
-    var min = alt[0], max = alt[0], i;
-    for (i = 1; i < alt.length; i++) {
-      if (alt[i] < min) min = alt[i];
-      if (alt[i] > max) max = alt[i];
-    }
-    var range = max - min;
-    var pts = [];
-    for (i = 0; i < alt.length; i++) {
-      var x = (4 + 272 * i / (alt.length - 1)).toFixed(1);
-      var y = range < 1 ? '32.0' : (60 - (alt[i] - min) / range * 56).toFixed(1);
-      pts.push(x + ',' + y);
-    }
-    var line = pts.join(' ');
-    return '<div class="ride-spark"><svg viewBox="0 0 280 64" role="img" aria-label="Elevation profile, ' +
-      Math.round(range) + ' ft range" preserveAspectRatio="none">' +
-      '<polygon points="4,60 ' + line + ' 276,60" fill="#7f4c29" opacity="0.10"/>' +
-      '<polyline points="' + line + '" fill="none" stroke="#7f4c29" stroke-width="1.6" stroke-linejoin="round"/>' +
-      '<line x1="4" y1="60" x2="276" y2="60" stroke="#e8e2da" stroke-width="1"/></svg></div>';
-  }
-
-  function renderRides(rides) {
+  /* ---------- ride list ---------- */
+  function renderRides() {
     var list = document.getElementById('ride-list');
-    if (!list || !rides || !rides.length) return;
-    var s = '';
-    for (var i = 0; i < rides.length; i++) {
-      var r = rides[i];
-      s += '<article class="ride"><div class="ride-info">' +
-        '<p class="ride-date">' + longDate(r.date) + '</p>' +
-        '<h3>' + esc(r.name) + '</h3>' +
-        '<p class="ride-stats">' +
-        '<span><b>' + r.mi.toFixed(1) + '</b> mi</span>' +
-        '<span><b>' + fmtInt(r.ft) + '</b> ft climbed</span>' +
-        '<span><b>' + fmtHM(r.sec) + '</b> riding</span>' +
-        '<span><b>' + r.mph.toFixed(1) + '</b> mph</span>' +
-        '</p></div>' + spark(r.alt) + '</article>';
+    if (!list || !feed || !feed.rides) return;
+    list.innerHTML = feed.rides.length ? R.rideListHTML(feed.rides, showingAll ? 0 : RECENT)
+      : '<p class="event-note">No rides logged yet this season.</p>';
+    var more = document.getElementById('ride-more');
+    if (more) {
+      var show = feed.rides.length > RECENT && !showingAll;
+      more.hidden = !show;
+      if (show) more.textContent = 'Show all ' + feed.rides.length + ' rides';
     }
-    list.innerHTML = s;
   }
 
-  function renderUpdated(iso) {
-    var el = document.getElementById('ride-updated-text');
-    if (!el) return;
-    var d = new Date(iso);
-    var h = d.getHours() % 12 || 12;
-    var ampm = d.getHours() < 12 ? 'AM' : 'PM';
-    el.textContent = 'Ride data synced from Intervals.icu · Updated ' +
-      MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() +
-      ', ' + h + ':' + ('0' + d.getMinutes()).slice(-2) + ' ' + ampm;
+  function setOpen(card, open, updateHash) {
+    var btn = card.querySelector('.ride-toggle'), panel = card.querySelector('.ride-detail');
+    var id = card.getAttribute('data-id');
+    if (!btn || !panel || !id) return;
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btn.textContent = open ? 'Hide details' : 'Ride details';
+    panel.hidden = !open;
+    if (open) loadDetail(id, panel);
+    if (updateHash && window.history && history.replaceState) {
+      if (open) history.replaceState(null, '', '#ride-' + id);
+      else if (location.hash === '#ride-' + id) history.replaceState(null, '', location.pathname + location.search);
+    }
+  }
+
+  function loadDetail(id, panel) {
+    if (panel.getAttribute('data-state')) return;
+    panel.setAttribute('data-state', 'loading');
+    panel.innerHTML = '<p class="detail-note">Loading ride…</p>';
+    fetch(RIDE_DIR + encodeURIComponent(id) + '.json').then(function (r) {
+      if (!r.ok) throw new Error('detail ' + r.status);
+      return r.json();
+    }).then(function (d) {
+      panel.setAttribute('data-state', 'ready');
+      renderDetail(panel, d);
+    }).catch(function () {
+      panel.removeAttribute('data-state');
+      panel.innerHTML = '<p class="detail-note">Details for this ride aren’t available yet — ' +
+        'the next sync should add them.</p>';
+    });
+  }
+
+  function bindList() {
+    var list = document.getElementById('ride-list');
+    if (list) {
+      list.addEventListener('click', function (ev) {
+        var btn = closest(ev.target, 'ride-toggle');
+        var card = btn && closest(btn, 'ride');
+        if (card) setOpen(card, btn.getAttribute('aria-expanded') !== 'true', true);
+      });
+    }
+    var more = document.getElementById('ride-more');
+    if (more) {
+      more.addEventListener('click', function () {
+        showingAll = true;
+        renderRides();
+      });
+    }
+  }
+
+  /* #ride-<id> deep-links straight to an open ride */
+  function openFromHash() {
+    var m = /^#ride-([A-Za-z0-9_-]+)$/.exec(location.hash || '');
+    if (!m) return;
+    var id = m[1], i;
+    if (feed && feed.rides && !showingAll) {
+      for (i = RECENT; i < feed.rides.length; i++) {
+        if (String(feed.rides[i].id) === id) { showingAll = true; renderRides(); break; }
+      }
+    }
+    var card = document.getElementById('ride-' + id);
+    if (!card) return;
+    setOpen(card, true, false);
+    setTimeout(function () { card.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 50);
+  }
+
+  /* ---------- ride detail ---------- */
+  function tile(label, value, unit) {
+    return '<div><div class="num">' + value + (unit ? '<small>' + unit + '</small>' : '') +
+      '</div><div class="lbl">' + label + '</div></div>';
+  }
+  function statTiles(s) {
+    var h = '';
+    if (s.mi != null) h += tile('Distance', s.mi.toFixed(1), 'mi');
+    if (s.moving != null) h += tile('Moving time', fmtHMS(s.moving));
+    if (s.elapsed != null && s.moving != null && s.elapsed - s.moving >= 60) {
+      h += tile('Stopped', fmtHMS(s.elapsed - s.moving));
+    }
+    if (s.ft != null) h += tile('Climbed', fmtInt(s.ft), 'ft');
+    if (s.ft_down != null) h += tile('Descended', fmtInt(s.ft_down), 'ft');
+    if (s.mph != null) h += tile('Avg speed', s.mph.toFixed(1), 'mph');
+    if (s.max_mph != null) h += tile('Max speed', s.max_mph.toFixed(1), 'mph');
+    if (s.avg_hr != null) h += tile('Avg heart rate', fmtInt(s.avg_hr), 'bpm');
+    if (s.max_hr != null) h += tile('Max heart rate', fmtInt(s.max_hr), 'bpm');
+    if (s.avg_w != null) h += tile('Avg power', fmtInt(s.avg_w), 'W');
+    if (s.np != null) h += tile('Normalized power', fmtInt(s.np), 'W');
+    if (s.intensity != null) {
+      h += tile('Intensity', Math.round(s.intensity <= 2 ? s.intensity * 100 : s.intensity), '% of FTP');
+    }
+    if (s.kj != null) h += tile('Work', fmtInt(s.kj), 'kJ');
+    if (s.load != null) h += tile('Training load', fmtInt(s.load));
+    if (s.avg_cad != null) h += tile('Avg cadence', fmtInt(s.avg_cad), 'rpm');
+    if (s.cal != null) h += tile('Calories', fmtInt(s.cal), 'kcal');
+    if (s.max_ft != null) h += tile('High point', fmtInt(s.max_ft), 'ft');
+    var t = s.wx && s.wx.temp_f != null ? s.wx.temp_f : s.temp_f;
+    if (t != null) h += tile('Temperature', fmtInt(t), '°F');
+    if (s.wx && s.wx.wind_mph != null) {
+      h += tile('Wind', fmtInt(s.wx.wind_mph), 'mph' +
+        (s.wx.headwind_pct != null ? ' · ' + Math.round(s.wx.headwind_pct) + '% headwind' : ''));
+    }
+    if (s.ef != null) h += tile('Efficiency factor', s.ef.toFixed(2));
+    if (s.decoupling != null) h += tile('HR decoupling', s.decoupling.toFixed(1), '%');
+    return h;
+  }
+
+  /* stacked small multiples sharing the distance axis: elevation (area),
+     speed, heart rate, power, cadence — whichever the ride recorded — with
+     one crosshair reading every series into the line above the chart */
+  function tickStep(maxMi) {
+    return maxMi <= 8 ? 1 : maxMi <= 16 ? 2 : maxMi <= 40 ? 5 : maxMi <= 80 ? 10 : 20;
+  }
+  function buildCharts(wrap, readout, st) {
+    var n = st.mi.length, i, k;
+    var defs = [
+      { key: 'ft', title: 'Elevation', unit: 'ft', area: true, h: 150, minSpan: 60,
+        fmt: function (v) { return fmtInt(v) + ' ft'; } },
+      { key: 'mph', title: 'Speed', unit: 'mph', h: 110, minSpan: 6,
+        fmt: function (v) { return v.toFixed(1) + ' mph'; } },
+      { key: 'hr', title: 'Heart rate', unit: 'bpm', h: 110, minSpan: 25,
+        fmt: function (v) { return fmtInt(v) + ' bpm'; } },
+      { key: 'w', title: 'Power', unit: 'W', h: 110, minSpan: 60,
+        fmt: function (v) { return fmtInt(v) + ' W'; } },
+      { key: 'cad', title: 'Cadence', unit: 'rpm', h: 90, minSpan: 20,
+        fmt: function (v) { return fmtInt(v) + ' rpm'; } }
+    ];
+    var W = 760, L = 10, RX = 750, HEAD = 30, AXIS = 28;
+    var maxMi = Math.max(st.mi[n - 1], 0.1);
+    var X = function (mi) { return L + (RX - L) * mi / maxMi; };
+    var panels = [], y = 0, s = '';
+
+    defs.forEach(function (p) {
+      var vals = st[p.key];
+      if (!vals) return;
+      var lo = Infinity, hi = -Infinity, iHi = -1, v;
+      for (i = 0; i < n; i++) {
+        v = vals[i];
+        if (v == null) continue;
+        if (v < lo) lo = v;
+        if (v > hi) { hi = v; iHi = i; }
+      }
+      if (!isFinite(lo)) return;
+      if (p.key === 'hr') lo = Math.max(Math.floor((lo - 5) / 10) * 10, 0);
+      else if (p.key !== 'ft') lo = 0;
+      var span = Math.max(hi - lo, p.minSpan);
+      var top = y + HEAD, base = top + p.h;
+      var Y = (function (top, base, lo, span, h) {
+        return function (val) { return base - (val - lo) / span * h; };
+      }(top, base, lo, span, p.h));
+      var segs = [], pts = [];
+      for (i = 0; i < n; i++) {
+        if (vals[i] == null) { if (pts.length) { segs.push(pts); pts = []; } continue; }
+        pts.push([X(st.mi[i]), Y(vals[i])]);
+      }
+      if (pts.length) segs.push(pts);
+
+      s += '<text x="' + L + '" y="' + (y + 19) + '" font-size="11.5" letter-spacing="1.8" fill="' + MUTED + '">' +
+        p.title.toUpperCase() + ' · ' + p.unit.toUpperCase() + '</text>';
+      s += '<line x1="' + L + '" y1="' + top + '" x2="' + RX + '" y2="' + top + '" stroke="' + LINE + '" stroke-width="1"/>';
+      s += '<line x1="' + L + '" y1="' + base + '" x2="' + RX + '" y2="' + base + '" stroke="' + LINE + '" stroke-width="1"/>';
+      segs.forEach(function (seg) {
+        var line = seg.map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' ');
+        if (p.area) {
+          s += '<polygon points="' + seg[0][0].toFixed(1) + ',' + base + ' ' + line + ' ' +
+            seg[seg.length - 1][0].toFixed(1) + ',' + base + '" fill="' + BROWN + '" opacity="0.10"/>';
+        }
+        if (seg.length > 1) {
+          s += '<polyline points="' + line + '" fill="none" stroke="' + BROWN + '" stroke-width="' +
+            (p.area ? 1.6 : 1.7) + '" stroke-linejoin="round" stroke-linecap="round"/>';
+        }
+      });
+      s += '<text class="ch-y" x="' + (L + 4) + '" y="' + (top + 13) + '" font-size="11" fill="' + MUTED + '">' + fmtInt(lo + span) + '</text>';
+      s += '<text class="ch-y" x="' + (L + 4) + '" y="' + (base - 4) + '" font-size="11" fill="' + MUTED + '">' + fmtInt(lo) + '</text>';
+      if (iHi >= 0) {                        /* the one direct label: the high */
+        var hx = X(st.mi[iHi]), hy = Y(hi);
+        s += '<g class="ch-max"><circle cx="' + hx.toFixed(1) + '" cy="' + hy.toFixed(1) + '" r="3.5" fill="' + BROWN +
+          '" stroke="' + PAPER + '" stroke-width="2"/><text class="ch-halo" x="' + clamp(hx, 60, 700).toFixed(1) +
+          '" y="' + Math.max(hy - 9, top + 13).toFixed(1) + '" text-anchor="middle" font-size="12" fill="' + INK + '">' +
+          p.fmt(hi) + '</text></g>';
+      }
+      panels.push({ def: p, vals: vals, Y: Y });
+      y = base;
+    });
+    if (!panels.length) return;
+
+    var step = tickStep(maxMi);
+    for (var m = 0; m <= maxMi + 1e-9; m += step) {
+      var tx = X(m), anchor = m === 0 ? 'start' : (tx > RX - 30 ? 'end' : 'middle');
+      s += '<text x="' + tx.toFixed(1) + '" y="' + (y + 19) + '" text-anchor="' + anchor + '" font-size="12" fill="' + MUTED + '">' +
+        m + (m === 0 ? ' mi' : '') + '</text>';
+    }
+    s += '<g class="ch-hover" opacity="0"><line x1="0" x2="0" y1="' + HEAD + '" y2="' + y + '" stroke="' + BROWN +
+      '" stroke-width="1" opacity="0.4"/>';
+    panels.forEach(function () {
+      s += '<circle r="4" fill="' + BROWN + '" stroke="' + PAPER + '" stroke-width="2"/>';
+    });
+    s += '</g><rect class="ch-hit" x="' + L + '" y="0" width="' + (RX - L) + '" height="' + y + '" fill="transparent"/>';
+    wrap.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + (y + AXIS) + '" role="img" aria-label="' +
+      panels.map(function (p) { return p.def.title.toLowerCase(); }).join(', ') +
+      ' over the ' + maxMi.toFixed(1) + ' miles of the ride">' + s + '</svg>';
+
+    var svg = wrap.querySelector('svg'), hov = svg.querySelector('.ch-hover');
+    var hLine = hov.querySelector('line'), dots = hov.querySelectorAll('circle');
+    var maxes = svg.querySelectorAll('.ch-max');
+    var idle = '<span class="detail-hint">Hover or touch the charts to read the ride at any mile.</span>';
+    readout.innerHTML = idle;
+    function nearest(mi) {               /* st.mi never decreases */
+      var lo = 0, hi = n - 1;
+      while (lo < hi) {
+        var mid = (lo + hi) >> 1;
+        if (st.mi[mid] < mi) lo = mid + 1; else hi = mid;
+      }
+      if (lo > 0 && mi - st.mi[lo - 1] < st.mi[lo] - mi) lo--;
+      return lo;
+    }
+    function show(i) {
+      var px = X(st.mi[i]).toFixed(1);
+      hLine.setAttribute('x1', px);
+      hLine.setAttribute('x2', px);
+      var parts = ['<span><b>' + st.mi[i].toFixed(1) + '</b> mi</span>'];
+      if (st.sec) parts.push('<span><b>' + fmtHMS(st.sec[i]) + '</b> elapsed</span>');
+      panels.forEach(function (p, j) {
+        var v = p.vals[i];
+        if (v == null) { dots[j].setAttribute('opacity', '0'); return; }
+        dots[j].setAttribute('opacity', '1');
+        dots[j].setAttribute('cx', px);
+        dots[j].setAttribute('cy', p.Y(v).toFixed(1));
+        parts.push('<span><b>' + (p.def.key === 'mph' ? v.toFixed(1) : fmtInt(v)) + '</b> ' + p.def.unit + '</span>');
+      });
+      if (st.grade && st.grade[i] != null) parts.push('<span><b>' + st.grade[i].toFixed(1) + '%</b> grade</span>');
+      hov.setAttribute('opacity', '1');
+      for (k = 0; k < maxes.length; k++) maxes[k].setAttribute('opacity', '0');
+      readout.innerHTML = parts.join('');
+    }
+    function hide() {
+      hov.setAttribute('opacity', '0');
+      for (k = 0; k < maxes.length; k++) maxes[k].setAttribute('opacity', '1');
+      readout.innerHTML = idle;
+    }
+    svg.addEventListener('pointermove', function (ev) {
+      var box = svg.getBoundingClientRect();
+      var vx = (ev.clientX - box.left) / box.width * W;
+      if (vx < L || vx > RX) { hide(); return; }
+      show(nearest((vx - L) / (RX - L) * maxMi));
+    });
+    svg.addEventListener('pointerleave', hide);
+  }
+
+  function table(head, rows) {
+    return '<table class="detail-table"><thead><tr>' +
+      head.map(function (h) { return '<th>' + h + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      rows.map(function (r) {
+        return '<tr>' + r.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>';
+      }).join('') + '</tbody></table>';
+  }
+  function has(list, key) {
+    for (var i = 0; i < list.length; i++) if (list[i][key] != null) return true;
+    return false;
+  }
+
+  function climbsHTML(cl) {
+    var hr = has(cl, 'hr'), w = has(cl, 'w');
+    var head = ['Starts at', 'Length', 'Gain', 'Avg grade', 'Steepest', 'Time', 'Climb rate'];
+    if (hr) head.push('Avg HR');
+    if (w) head.push('Avg power');
+    return table(head, cl.map(function (c) {
+      var r = ['mile ' + c.start_mi.toFixed(1), c.len_mi.toFixed(2) + ' mi', fmtInt(c.gain_ft) + ' ft',
+        c.grade.toFixed(1) + '%', c.max_grade != null ? c.max_grade.toFixed(1) + '%' : DASH,
+        fmtHMS(c.sec), c.fph != null ? fmtInt(c.fph) + ' ft/hr' : DASH];
+      if (hr) r.push(c.hr != null ? fmtInt(c.hr) + ' bpm' : DASH);
+      if (w) r.push(c.w != null ? fmtInt(c.w) + ' W' : DASH);
+      return r;
+    }));
+  }
+
+  function durLabel(sec) {
+    return sec < 60 ? sec + ' s' : sec < 3600 ? (sec / 60) + ' min' : (sec / 3600) + ' hr';
+  }
+  function peaksHTML(pk) {
+    var cols = [], secs = [], i, j;
+    if (pk.mph) cols.push({ key: 'mph', label: 'Speed', fmt: function (v) { return v.toFixed(1) + ' mph'; } });
+    if (pk.hr) cols.push({ key: 'hr', label: 'Heart rate', fmt: function (v) { return fmtInt(v) + ' bpm'; } });
+    if (pk.w) cols.push({ key: 'w', label: 'Power', fmt: function (v) { return fmtInt(v) + ' W'; } });
+    if (!cols.length) return '';
+    cols.forEach(function (c) {
+      pk[c.key].forEach(function (e) { if (secs.indexOf(e.sec) < 0) secs.push(e.sec); });
+    });
+    secs.sort(function (a, b) { return a - b; });
+    var rows = [];
+    for (i = 0; i < secs.length; i++) {
+      var row = ['Best ' + durLabel(secs[i])];
+      for (j = 0; j < cols.length; j++) {
+        var hit = null, list = pk[cols[j].key];
+        for (k = 0; k < list.length; k++) if (list[k].sec === secs[i]) hit = list[k];
+        row.push(hit ? cols[j].fmt(hit.v) : DASH);
+      }
+      rows.push(row);
+    }
+    var k;
+    return table([''].concat(cols.map(function (c) { return c.label; })), rows);
+  }
+
+  function zoneBlock(title, secs, bounds, unit, ids) {
+    var total = 0, i;
+    for (i = 0; i < secs.length; i++) if (!ids || /^Z\d+$/.test(ids[i])) total += secs[i];
+    if (!total) return '';
+    var h = '<p class="detail-h">' + title + '</p><div class="zone-bars">';
+    var count = ids ? ids.filter(function (id) { return /^Z\d+$/.test(id); }).length : secs.length;
+    var zi = 0;
+    for (i = 0; i < secs.length; i++) {
+      if (ids && !/^Z\d+$/.test(ids[i])) continue;      /* "SS" overlaps Z3/Z4 — not a slice */
+      var name = ids ? ids[i] : 'Z' + (i + 1), range = '';
+      if (bounds && bounds.length) {
+        var lo = i === 0 ? null : bounds[i - 1], hi = i < bounds.length ? bounds[i] : null;
+        if (hi != null && hi < 900) range = (lo == null ? '≤ ' : (lo + 1) + '–') + hi;
+        else if (lo != null) range = '> ' + lo;
+        if (range) range += ' ' + unit;
+      }
+      var pct = secs[i] / total * 100;
+      var color = ZONE_RAMP[Math.round(zi * (ZONE_RAMP.length - 1) / Math.max(count - 1, 1))];
+      h += '<span class="zl">' + esc(name) + (range ? ' <small>' + range + '</small>' : '') + '</span>' +
+        '<span class="zb"><i style="width:' + pct.toFixed(1) + '%;background:' + color + '"></i></span>' +
+        '<span class="zv"><b>' + Math.round(pct) + '%</b> ' + fmtHMS(secs[i]) + '</span>';
+      zi++;
+    }
+    return h + '</div>';
+  }
+  function zonesHTML(z) {
+    var h = '';
+    if (z.hr && z.hr.secs) h += zoneBlock('Heart rate zones', z.hr.secs, z.hr.bounds, 'bpm', null);
+    if (z.power && z.power.secs) h += zoneBlock('Power zones', z.power.secs, z.power.bounds, '% FTP', z.power.ids);
+    return h;
+  }
+
+  function lapsHTML(laps) {
+    var ft = has(laps, 'ft'), hr = has(laps, 'hr'), w = has(laps, 'w');
+    var head = ['Lap', 'Distance', 'Time', 'Speed'];
+    if (ft) head.push('Climb');
+    if (hr) head.push('Avg HR');
+    if (w) head.push('Avg power');
+    return table(head, laps.map(function (l) {
+      var r = [esc(l.label || 'Lap'), l.mi != null ? l.mi.toFixed(2) + ' mi' : DASH,
+        l.sec != null ? fmtHMS(l.sec) : DASH, l.mph != null ? l.mph.toFixed(1) + ' mph' : DASH];
+      if (ft) r.push(l.ft != null ? fmtInt(l.ft) + ' ft' : DASH);
+      if (hr) r.push(l.hr != null ? fmtInt(l.hr) + ' bpm' : DASH);
+      if (w) r.push(l.w != null ? fmtInt(l.w) + ' W' : DASH);
+      return r;
+    }));
+  }
+
+  function splitsHTML(sp) {
+    var hr = has(sp, 'hr'), w = has(sp, 'w'), maxMph = 0, i;
+    for (i = 0; i < sp.length; i++) if (sp[i].mph > maxMph) maxMph = sp[i].mph;
+    var head = ['Mile', 'Time', 'Speed', 'Climb', 'Descent'];
+    if (hr) head.push('Avg HR');
+    if (w) head.push('Avg power');
+    return table(head, sp.map(function (x) {
+      var r = [x.len < 0.95 ? x.mile + ' <small>(' + x.len.toFixed(1) + ' mi)</small>' : String(x.mile),
+        fmtHMS(x.sec),
+        x.mph != null ? '<span class="sp"><span class="sp-bar"><i style="width:' +
+          (maxMph ? (x.mph / maxMph * 100).toFixed(0) : 0) + '%"></i></span>' + x.mph.toFixed(1) + ' mph</span>' : DASH,
+        x.up ? '+' + fmtInt(x.up) + ' ft' : DASH,
+        x.down ? '−' + fmtInt(x.down) + ' ft' : DASH];
+      if (hr) r.push(x.hr != null ? fmtInt(x.hr) + ' bpm' : DASH);
+      if (w) r.push(x.w != null ? fmtInt(x.w) + ' W' : DASH);
+      return r;
+    }));
+  }
+
+  function renderDetail(panel, d) {
+    var h = '<div class="detail-stats">' + statTiles(d.stats || {}) + '</div>';
+    var charts = d.streams && d.streams.mi && d.streams.mi.length > 2;
+    if (charts) {
+      h += '<p class="detail-h">Along the ride</p><p class="detail-readout" data-role="readout"></p>' +
+        '<div class="detail-charts" data-role="charts"></div>';
+    }
+    if (d.climbs && d.climbs.length) h += '<p class="detail-h">Climbs</p><div class="detail-scroll">' + climbsHTML(d.climbs) + '</div>';
+    if (d.peaks) {
+      var pk = peaksHTML(d.peaks);
+      if (pk) h += '<p class="detail-h">Best efforts</p>' + pk;
+    }
+    if (d.zones) h += zonesHTML(d.zones);
+    if (d.laps && d.laps.length > 1) h += '<p class="detail-h">Laps</p><div class="detail-scroll">' + lapsHTML(d.laps) + '</div>';
+    if (d.splits && d.splits.length) h += '<p class="detail-h">Mile splits</p><div class="detail-scroll">' + splitsHTML(d.splits) + '</div>';
+    var foot = [];
+    if (d.device) foot.push('Recorded on ' + esc(d.device));
+    foot.push('<a href="https://intervals.icu/activities/' + encodeURIComponent(String(d.id)) +
+      '" target="_blank" rel="noopener">Open on Intervals.icu</a>');
+    h += '<p class="detail-foot">' + foot.join(' · ') + '</p>';
+    panel.innerHTML = h;
+    if (charts) {
+      buildCharts(panel.querySelector('[data-role="charts"]'), panel.querySelector('[data-role="readout"]'), d.streams);
+    }
   }
 
   /* ---------- today's temperature, sunrise to sunset ----------
@@ -243,7 +578,7 @@
       hDot.setAttribute('cx', px); hDot.setAttribute('cy', py);
       hText.setAttribute('x', Math.min(Math.max(px, 40), 720));
       hText.setAttribute('y', Math.max(py - 14, 14));
-      hText.textContent = Math.round(pts[best].t) + '\u00b0 at ' + clockLabel(pts[best].min);
+      hText.textContent = Math.round(pts[best].t) + '° at ' + clockLabel(pts[best].min);
       g.setAttribute('opacity', '1');
       high.setAttribute('opacity', '0');
     }
@@ -274,27 +609,38 @@
       var body = document.getElementById('ride-brief-body');
       if (!wrap || !body) return;
       body.textContent = j.body;
-      wrap.title = (j.week ? 'Week of ' + j.week + ' \u2014 ' : '') +
-        'AI-drafted ' + longDate(j.generated.slice(0, 10)) + ' from this page\u2019s ride data';
+      wrap.title = (j.week ? 'Week of ' + j.week + ' — ' : '') +
+        'AI-drafted ' + longDate(j.generated.slice(0, 10)) + ' from this page’s ride data';
       wrap.hidden = false;
     }).catch(function () {});
   }
 
-  function render(feed) {
-    renderSeason(feed.season);
-    renderWeeks(feed.weeks);
-    renderRides(feed.rides);
-    renderUpdated(feed.updated);
+  /* ---------- the ride feed ---------- */
+  function render(f) {
+    feed = f;
+    var row = document.querySelector('.stat-row');
+    if (row && f.season) row.innerHTML = R.seasonHTML(f.season);
+    var wk = document.getElementById('weekly-chart');
+    if (wk && f.weeks && f.weeks.length) {
+      wk.innerHTML = R.weeksSVG(f.weeks);
+      bindWeeks(f.weeks);
+    }
+    renderRides();
+    var up = document.getElementById('ride-updated-text');
+    if (up && f.updated) up.textContent = R.updatedText(f.updated);
+    openFromHash();
   }
 
   updateDaysOut();
   loadBrief();
   loadWx();
-  fetch(FEED_URL)
+  bindList();
+  window.addEventListener('hashchange', openFromHash);
+  fetch(FEED_URL, { cache: 'no-cache' })
     .then(function (r) {
       if (!r.ok) throw new Error('feed ' + r.status);
       return r.json();
     })
     .then(render)
-    .catch(function () { /* relay down or not deployed yet — baked page stands */ });
+    .catch(function () { openFromHash(); /* no feed yet — the baked page stands */ });
 })();

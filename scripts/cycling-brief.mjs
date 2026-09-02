@@ -1,7 +1,8 @@
 /* Weekly training note for /cycling/.
-   Pulls the season's rides from the Intervals.icu relay and the week's
-   riding weather from Open-Meteo, has Claude draft a short note on where
-   training stands against the Ride Santa Barbara 100, and writes
+   Reads the season's rides from assets/data/cycling/feed.json (kept
+   current by scripts/cycling-rides.mjs and its hourly workflow) and the
+   week's riding weather from Open-Meteo, has Claude draft a short note on
+   where training stands against the Ride Santa Barbara 100, and writes
    assets/data/cycling-brief.json for the page to display.
    Run by .github/workflows/cycling-brief.yml (Wednesday mornings).
 
@@ -9,7 +10,7 @@
 import fs from "node:fs";
 import Anthropic from "@anthropic-ai/sdk";
 
-const FEED = "https://intervals-relay-924564512726.us-central1.run.app/feed";
+const FEED = "assets/data/cycling/feed.json";
 const OUT = "assets/data/cycling-brief.json";
 /* Ride Santa Barbara 100 — the date the page counts down to. The note's
    job is the route decision: the flat-ish 100 km, or the same distance
@@ -68,9 +69,14 @@ async function getJson(url, headers = {}) {
 
 async function gather() {
   /* the ride feed is the whole point of the note — no feed, no brief */
-  const feed = await getJson(FEED);
+  let feed = null;
+  try {
+    feed = JSON.parse(fs.readFileSync(FEED, "utf8"));
+  } catch (err) {
+    throw new Error(`${FEED} unreadable (${err.message}) — has the cycling-rides workflow run?`);
+  }
   if (!feed || !feed.season || !Array.isArray(feed.weeks)) {
-    throw new Error("relay feed missing season/weeks");
+    throw new Error("ride feed missing season/weeks");
   }
 
   /* the week ahead: today (Wednesday) through next Tuesday */

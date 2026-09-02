@@ -26,26 +26,29 @@ assets/css/style.css    All styling; design tokens in :root
 assets/js/pdf-viewer.js Pager logic for the document viewers
 assets/js/sailing.js    Sailing chart engine (projection, routes, wind field)
 assets/js/sailing-data.js SBYC marks/courses + shoreline geometry (generated)
-assets/js/cycling.js    Live ride feed — re-renders the cycling page from the
-                        Intervals.icu relay; baked HTML is the no-JS fallback
+assets/js/cycling-render.js Shared cycling markup (season stats, weekly chart,
+                        ride cards) used by the page and by the bake step
+assets/js/cycling.js    Cycling page — renders assets/data/cycling/feed.json and
+                        opens per-ride detail panels (charts, splits, climbs,
+                        zones); the baked HTML is the no-JS fallback
 assets/js/fishing.js    Fishing chart engine (SST isotherms, wash, wind field)
 assets/js/fishing-data.js Channel Islands shoreline + fishing spots (generated)
 assets/img/             Photos + favicon; assets/img/pdf/<slug>/ holds pre-rendered
                         page images (150 DPI JPGs, generated with PyMuPDF)
 assets/files/           Resume + academic PDFs (download links)
-assets/data/            Generated data (fishing-brief.json, written daily
-                        by the fishing-brief workflow)
-scripts/                Node generators run by GitHub Actions
-                        (fishing-brief.mjs drafts the weekend outlook with
-                        the Claude API — needs the ANTHROPIC_API_KEY repo
-                        secret; without it the workflow no-ops)
+assets/data/            Generated data: cycling/feed.json and
+                        cycling/rides/<id>.json (hourly, from Intervals.icu),
+                        cycling-brief.json and fishing-brief.json (weekly
+                        AI notes)
+scripts/                Node generators run by GitHub Actions:
+                        cycling-rides.mjs pulls rides from Intervals.icu
+                        (needs the INTERVALS_API_KEY repo secret);
+                        cycling-brief.mjs / fishing-brief.mjs draft the
+                        weekly notes with the Claude API (ANTHROPIC_API_KEY —
+                        without it those workflows no-op)
 infra/owntracks-relay/  Cloud Run relay for the live boat marker (service
                         owntracks-relay, project margerum; POST token lives
                         only in the Cloud Run env var, never in this repo)
-infra/intervals-relay/  Cloud Run relay for the cycling page's live ride feed
-                        (service intervals-relay, project margerum; the
-                        Intervals.icu API key lives only in Cloud Run env
-                        vars, never in this repo)
 CNAME                   Custom domain for GitHub Pages (remymargerum.com)
 ```
 
@@ -75,70 +78,48 @@ GoDaddy — leave the nameservers alone): `@` A records →
 so GitHub can issue its certificate. Once the certificate is issued,
 enable "Enforce HTTPS" in the repo's Pages settings.
 
-## Cycling live data (Intervals.icu relay + webhook)
+## Cycling ride data (Intervals.icu via GitHub Actions)
 
-The cycling page loads its numbers live: `assets/js/cycling.js` fetches
-`/feed` from `infra/intervals-relay` on every visit, and the relay hears
-about new activities the moment they upload via an Intervals.icu webhook —
-the event busts the relay's cache and rebuilds the feed, so the page is
-current as soon as a ride posts, with no daily rebuild and no manual
-refresh. Rides are recorded in the Cadence app, which auto-uploads to
-Intervals.icu; nothing in this chain touches Strava, whose API now
-requires a paid subscription.
+The cycling page reads static JSON that a scheduled action keeps current.
+`.github/workflows/cycling-rides.yml` runs `scripts/cycling-rides.mjs` every
+hour (and on demand from the Actions tab); the script pulls the season's
+rides from the Intervals.icu API and commits
 
-The HTML baked into `cycling/index.html` is only the no-JS/SEO fallback;
-refresh it occasionally (or leave a scheduled job doing so) so crawlers
-see something reasonably fresh. The relay serves aggregates and
-elevation-vs-distance curves only — no GPS coordinates, maps, or start
-locations ever leave it.
+- `assets/data/cycling/feed.json` — season totals, miles per Monday-week,
+  and every ride of the season with an elevation sparkline;
+- `assets/data/cycling/rides/<id>.json` — one file per ride with what the
+  page's "Ride details" panel shows: downsampled distance / altitude /
+  speed / heart-rate / power / cadence streams, mile splits, climbs, best
+  efforts, time in zones and laps;
+- the season stats, weekly chart and recent rides baked into
+  `cycling/index.html` between the `<!-- cycling:… -->` markers, as the
+  no-JS/SEO fallback (the page re-renders from the JSON when it loads).
 
-One-time setup:
+Rides are recorded in the Cadence app, which auto-uploads to Intervals.icu;
+nothing in this chain touches Strava. Only aggregates and curves are
+stored — no GPS coordinates, maps or start locations. Per-ride files are
+cached and fetched again only when Intervals.icu re-analyzes a ride or its
+headline numbers change, so an idle hour is one API call and no commit
+(a personal API key allows 5,000 calls a day). The weekly training note
+(`cycling-brief.mjs`) reads the same `feed.json`. A ride can be linked
+directly as `/cycling/#ride-<id>`.
 
-1. In Intervals.icu, open Settings and scroll to **Developer Settings**.
-   Generate a personal API key. The relay authenticates with HTTP Basic
-   auth as `API_KEY:<the key>`.
-2. Pick any random string as the webhook shared secret, e.g.
-   `openssl rand -hex 16`.
-3. Deploy (the service name/region must stay `intervals-relay` /
-   `us-central1` — the URL is hardcoded in `assets/js/cycling.js`):
+Setup:
 
-   ```
-   gcloud run deploy intervals-relay --source infra/intervals-relay \
-     --project margerum --region us-central1 --allow-unauthenticated \
-     --set-env-vars INTERVALS_API_KEY=<KEY>,INTERVALS_WEBHOOK_SECRET=<RANDOM>
-   ```
+1. In Intervals.icu open Settings, scroll to **Developer Settings** and
+   generate a personal API key.
+2. Add it to the repo as an Actions secret named `INTERVALS_API_KEY`
+   (Settings → Secrets and variables → Actions). Without it the workflow
+   fails with a message saying so.
+3. Run the **Cycling rides** workflow once from the Actions tab, or wait
+   for the next hour; the first run backfills the whole season.
 
-   The first `/feed` request backfills the whole season in one API call,
-   so every ride already in Intervals.icu shows up immediately.
-4. **Webhook (optional, and it needs approval).** Intervals.icu attaches
-   webhooks to OAuth apps, not to personal API keys, so a "Manage App"
-   link only appears once you own an app. To get one, apply at
-   <https://intervals.icu/oauth/apply> while logged in (name, description,
-   website `https://remymargerum.com`, a square logo ≥128×128, the privacy
-   policy URL, and a redirect URI — `https://remymargerum.com/cycling/`
-   serves, since the relay never runs the OAuth flow). The app starts
-   *Pending*; once approved it appears under `/settings/apps`, and its
-   **Manage App** page is where the callback URL
-   `https://intervals-relay-924564512726.us-central1.run.app/webhook`
-   goes, with the same shared secret, subscribed to `ACTIVITY_UPLOADED`
-   and `ACTIVITY_ANALYZED`.
-
-   Skipping this step costs very little: without a webhook the relay simply
-   rebuilds when its cache expires, so the page is at worst `FEED_TTL_MS`
-   old (15 minutes by default) instead of instant.
-
-Optional env vars: `INTERVALS_ATHLETE_ID` (defaults to `0`, meaning the
-key's owner), `SEASON_START` (defaults to January 1 of the current year),
-`RIDE_TYPES` (defaults to `Ride,GravelRide,MountainBikeRide` — add
-`EBikeRide` or `VirtualRide` here if rides are missing from the page),
-`RECENT_RIDES` (defaults to 8, the length of the Recent Rides list), and
-`FEED_TTL_MS` (defaults to 900000 = 15 minutes).
-
-Elevation profiles are cached per activity and the season list is one call
-per rebuild, so API usage stays minimal even at a short TTL. Note that
-Intervals.icu does not fire activity webhooks for rides that arrived there
-from Strava — ours come straight from Cadence, so that limitation does not
-apply.
+Optional env vars (set them on the workflow step): `INTERVALS_ATHLETE_ID`
+(defaults to `0`, the key's owner), `SEASON_START` (defaults to January 1
+of the current year), `RIDE_TYPES` (defaults to
+`Ride,GravelRide,MountainBikeRide` — add `EBikeRide` or `VirtualRide` if
+rides are missing from the page). Bump `DETAIL_VERSION` in the script to
+rebuild every ride file after a format change.
 
 ## Local preview
 

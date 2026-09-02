@@ -1,0 +1,43 @@
+name: Cycling rides
+
+# Pulls the season's rides from Intervals.icu into assets/data/cycling/ and
+# re-bakes the cycling page's fallback HTML. Only commits when something
+# changed, so an idle hour costs one API call and no commit.
+on:
+  schedule:
+    - cron: "20 * * * *" # hourly
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cycling-rides
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Pull rides from Intervals.icu
+        env:
+          INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
+        run: node scripts/cycling-rides.mjs
+      - name: Commit if changed
+        run: |
+          git add -A assets/data/cycling cycling/index.html
+          # staged diff — a plain diff misses files that are brand-new
+          if git diff --cached --quiet; then
+            echo "No change."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update cycling rides"
+          # another workflow may have pushed meanwhile (the weekly briefs)
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push
