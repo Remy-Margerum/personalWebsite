@@ -7,6 +7,8 @@ on:
   schedule:
     - cron: "20 * * * *" # hourly
   workflow_dispatch: {}
+  push: # temporary: first real run on the feature branch
+    branches: [claude/cycling-intervals-icu-api-3atu5n]
 
 permissions:
   contents: write
