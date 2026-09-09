@@ -128,12 +128,21 @@ function mondayOf(ymd) {
 async function allRides() {
   const list = await api(`/athlete/${ATHLETE}/activities?oldest=${HISTORY_START}&newest=${addDays(todayPacific(), 2)}`);
   if (!Array.isArray(list)) throw new Error("activities: unexpected response");
-  const seen = new Set(), out = [];
+  /* say what was left out, so a missing ride is explainable from the log:
+     other sports, trainer rides, and Strava-sourced activities (which the
+     API only returns as empty stubs) */
+  const seen = new Set(), out = [], left = new Map();
+  const skip = (why) => left.set(why, (left.get(why) || 0) + 1);
+  let oldest = null;
   for (const a of list) {
-    if (!a || a.id == null || !a.start_date_local) continue;
-    if (!RIDE_TYPES.includes(a.type) || a.trainer) continue;
+    if (!a || a.id == null) { skip("empty"); continue; }
+    if (!a.start_date_local) { skip(a.source === "STRAVA" || a.strava_id ? "Strava stub" : "no date"); continue; }
+    const day = a.start_date_local.slice(0, 10);
+    if (!oldest || day < oldest) oldest = day;
+    if (!RIDE_TYPES.includes(a.type)) { skip(a.type || "untyped"); continue; }
+    if (a.trainer) { skip(`${a.type} (trainer)`); continue; }
     /* the same ride uploaded twice (two apps syncing) is one ride */
-    const key = `${a.start_date_local.slice(0, 16)}|${Math.round(a.distance || 0)}|${a.moving_time || 0}`;
+    const key = `${day}${a.start_date_local.slice(10, 16)}|${Math.round(a.distance || 0)}|${a.moving_time || 0}`;
     if (seen.has(key)) {
       console.log(`  skipping duplicate upload ${a.id} (${a.name})`);
       continue;
@@ -141,6 +150,8 @@ async function allRides() {
     seen.add(key);
     out.push(a);
   }
+  console.log(`API returned ${list.length} activities${oldest ? ` (oldest ${oldest})` : ""}` +
+    (left.size ? `; not counted: ${[...left].map(([k, v]) => `${v} ${k}`).join(", ")}` : ""));
   out.sort((x, y) => y.start_date_local.localeCompare(x.start_date_local));
   return out;
 }
