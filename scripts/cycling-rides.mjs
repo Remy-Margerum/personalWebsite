@@ -21,9 +21,9 @@
    INTERVALS_ATHLETE_ID (default 0 = the key's owner), SEASON_START
    (YYYY-MM-DD, default January 1 of the current year), HISTORY_START
    (YYYY-MM-DD, how far back to pull, default 2000-01-01 = everything),
-   RIDE_TYPES (default Ride,GravelRide,MountainBikeRide — add EBikeRide or
-   VirtualRide if rides are missing from the page), INTERVALS_API (base URL,
-   for testing). */
+   RIDE_TYPES (default Ride,GravelRide,MountainBikeRide,EBikeRide — add
+   VirtualRide if indoor rides should count), INTERVALS_API (base URL, for
+   testing). */
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -34,7 +34,7 @@ const R = createRequire(import.meta.url)("../assets/js/cycling-render.js");
 const API = (process.env.INTERVALS_API || "https://intervals.icu/api/v1").replace(/\/+$/, "");
 const KEY = process.env.INTERVALS_API_KEY || "";
 const ATHLETE = process.env.INTERVALS_ATHLETE_ID || "0";
-const RIDE_TYPES = (process.env.RIDE_TYPES || "Ride,GravelRide,MountainBikeRide")
+const RIDE_TYPES = (process.env.RIDE_TYPES || "Ride,GravelRide,MountainBikeRide,EBikeRide")
   .split(",").map((s) => s.trim()).filter(Boolean);
 
 const DATA_DIR = "assets/data/cycling";

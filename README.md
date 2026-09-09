@@ -120,8 +120,8 @@ Optional env vars (set them on the workflow step): `INTERVALS_ATHLETE_ID`
 (defaults to `0`, the key's owner), `SEASON_START` (defaults to January 1
 of the current year), `HISTORY_START` (how far back to pull; defaults to
 `2000-01-01`, i.e. everything Intervals.icu has), `RIDE_TYPES` (defaults to
-`Ride,GravelRide,MountainBikeRide` — add `EBikeRide` or `VirtualRide` if
-rides are missing from the page). Bump `DETAIL_VERSION` in the script to
+`Ride,GravelRide,MountainBikeRide,EBikeRide` — add `VirtualRide` if indoor
+rides should count). Bump `DETAIL_VERSION` in the script to
 rebuild every ride file after a format change.
 
 ## Local preview
