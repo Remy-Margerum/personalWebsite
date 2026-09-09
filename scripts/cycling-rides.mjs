@@ -1,8 +1,11 @@
-/* Pulls the season's rides from Intervals.icu into assets/data/cycling/ for
-   the cycling page, and bakes the current numbers into cycling/index.html.
+/* Pulls every ride in Intervals.icu into assets/data/cycling/ for the
+   cycling page, and bakes the current numbers into cycling/index.html.
 
-     feed.json          season totals, miles per Monday-week, and every ride
-                        of the season with an elevation sparkline
+     feed.json          this season's totals, all-time totals, miles per
+                        Monday-week, and every ride of the season with an
+                        elevation sparkline
+     archive.json       every ride before the season (the page loads it on
+                        "Show all")
      rides/<id>.json    what the page shows when a ride is opened: the
                         distance / altitude / speed / heart-rate / power
                         streams (downsampled), mile splits, climbs, best
@@ -16,9 +19,11 @@
    Run by .github/workflows/cycling-rides.yml. Needs INTERVALS_API_KEY (repo
    secret; Intervals.icu → Settings → Developer Settings). Optional:
    INTERVALS_ATHLETE_ID (default 0 = the key's owner), SEASON_START
-   (YYYY-MM-DD, default January 1 of the current year), RIDE_TYPES (default
-   Ride,GravelRide,MountainBikeRide — add EBikeRide or VirtualRide if rides
-   are missing from the page), INTERVALS_API (base URL, for testing). */
+   (YYYY-MM-DD, default January 1 of the current year), HISTORY_START
+   (YYYY-MM-DD, how far back to pull, default 2000-01-01 = everything),
+   RIDE_TYPES (default Ride,GravelRide,MountainBikeRide — add EBikeRide or
+   VirtualRide if rides are missing from the page), INTERVALS_API (base URL,
+   for testing). */
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -35,6 +40,8 @@ const RIDE_TYPES = (process.env.RIDE_TYPES || "Ride,GravelRide,MountainBikeRide"
 const DATA_DIR = "assets/data/cycling";
 const RIDES_DIR = path.join(DATA_DIR, "rides");
 const FEED = path.join(DATA_DIR, "feed.json");
+const ARCHIVE = path.join(DATA_DIR, "archive.json");
+const HISTORY_START = process.env.HISTORY_START || "2000-01-01";
 const PAGE = "cycling/index.html";
 export const RECENT = 8;          /* rides baked into the page; the page offers the rest */
 const WEEKS = 12;                 /* weekly-miles chart span */
@@ -70,23 +77,30 @@ function strip(o) {
 /* ---------- Intervals.icu ---------- */
 const AUTH = "Basic " + Buffer.from("API_KEY:" + KEY).toString("base64");
 
+/* transient errors retry with backoff; a rate limit (429 — 2,500 calls per
+   15 minutes, which only a first backfill of a long history approaches)
+   waits it out for up to ten minutes */
 async function api(p) {
-  let lastErr;
-  for (const backoff of [0, 3000, 15000, 45000]) {
-    if (backoff) await sleep(backoff);
+  const delays = [0, 3000, 15000, 45000];
+  let lastErr = null;
+  for (let attempt = 0; attempt < 24; attempt++) {
+    if (attempt) await sleep(lastErr && lastErr.status === 429 ? 30000 : delays[Math.min(attempt, 3)]);
     let r;
     try {
       r = await fetch(API + p, { headers: { Authorization: AUTH } });
     } catch (err) {
       lastErr = err;
+      if (attempt >= 3) throw err;
       continue;
     }
     if (r.ok) return r.json();
     lastErr = new Error(`intervals.icu ${r.status} on ${p.split("?")[0]}`);
+    lastErr.status = r.status;
     if (r.status === 401 || r.status === 403) {
       throw new Error(`${lastErr.message} — is INTERVALS_API_KEY a valid Intervals.icu API key?`);
     }
     if (r.status === 404) throw lastErr;
+    if (r.status !== 429 && attempt >= 3) throw lastErr;
   }
   throw lastErr;
 }
@@ -110,9 +124,9 @@ function mondayOf(ymd) {
   return new Date(t - dow * 86400000).toISOString().slice(0, 10);
 }
 
-/* every outdoor ride of the season, newest first, in one call */
-async function seasonRides() {
-  const list = await api(`/athlete/${ATHLETE}/activities?oldest=${seasonStart()}&newest=${addDays(todayPacific(), 2)}`);
+/* every outdoor ride on record, newest first, in one call */
+async function allRides() {
+  const list = await api(`/athlete/${ATHLETE}/activities?oldest=${HISTORY_START}&newest=${addDays(todayPacific(), 2)}`);
   if (!Array.isArray(list)) throw new Error("activities: unexpected response");
   const seen = new Set(), out = [];
   for (const a of list) {
@@ -515,6 +529,8 @@ export function bakePage(html, feed) {
     html = html.replace(re, (m, open, close) => `${open}\n${inner}\n${close}`);
   };
   put("season", R.seasonHTML(feed.season));
+  const allTime = R.allTimeHTML(feed.total, feed.season);
+  put("alltime", `<p class="all-time" id="ride-alltime"${allTime ? "" : " hidden"}>${allTime}</p>`);
   put("weeks", R.weeksSVG(feed.weeks));
   put("rides", R.rideListHTML(feed.rides, RECENT));
   put("updated", R.updatedText(feed.updated));
@@ -528,11 +544,16 @@ async function main() {
       "named INTERVALS_API_KEY.");
     process.exit(1);
   }
-  const acts = await seasonRides();
-  console.log(`${acts.length} rides since ${seasonStart()}`);
+  const acts = await allRides();
+  const start = seasonStart();
+  const seasonActs = acts.filter((a) => a.start_date_local.slice(0, 10) >= start);
+  const archiveActs = acts.filter((a) => a.start_date_local.slice(0, 10) < start);
+  const since = acts.length ? acts[acts.length - 1].start_date_local.slice(0, 10) : null;
+  console.log(`${acts.length} rides on record${since ? ` since ${since}` : ""}; ` +
+    `${seasonActs.length} this season (from ${start}), ${archiveActs.length} older`);
   fs.mkdirSync(RIDES_DIR, { recursive: true });
 
-  const rides = [], keep = new Set();
+  const byId = new Map(), keep = new Set();
   let fetched = 0, reused = 0;
   for (const a of acts) {
     const p = detailPath(a.id), sig = signature(a);
@@ -547,7 +568,8 @@ async function main() {
     } else {
       reused++;
     }
-    rides.push(feedRide(a, d));
+    byId.set(a.id, feedRide(a, d));
+    if (fetched && fetched % 50 === 0 && !reused) console.log(`  … ${fetched} of ${acts.length} rides fetched`);
   }
   let pruned = 0;
   for (const f of fs.readdirSync(RIDES_DIR)) {
@@ -557,12 +579,15 @@ async function main() {
     }
   }
 
-  let mi = 0, ft = 0, sec = 0;
-  for (const a of acts) {
-    mi += (a.distance || 0) * M_TO_MI;
-    ft += (a.total_elevation_gain || 0) * M_TO_FT;
-    sec += a.moving_time || 0;
-  }
+  const totals = (list) => {
+    let mi = 0, ft = 0, sec = 0;
+    for (const a of list) {
+      mi += (a.distance || 0) * M_TO_MI;
+      ft += (a.total_elevation_gain || 0) * M_TO_FT;
+      sec += a.moving_time || 0;
+    }
+    return { rides: list.length, mi: Math.round(mi), ft: Math.round(ft), sec };
+  };
   const currentMonday = Date.parse(mondayOf(todayPacific()));
   const weeks = [];
   for (let k = WEEKS - 1; k >= 0; k--) {
@@ -577,26 +602,35 @@ async function main() {
   }
   for (const w of weeks) { w.mi = r1(w.mi); w.ft = Math.round(w.ft); }
 
+  const now = new Date().toISOString();
   const feed = {
-    updated: new Date().toISOString(),
-    season_start: seasonStart(),
-    season: { rides: acts.length, mi: Math.round(mi), ft: Math.round(ft), sec },
-    weeks, rides,
+    updated: now,
+    season_start: start,
+    season: totals(seasonActs),
+    total: strip({ ...totals(acts), since }),
+    weeks,
+    rides: seasonActs.map((a) => byId.get(a.id)),
   };
-  /* "updated" means the data changed — an unchanged feed keeps its stamp so
+  const archive = { updated: now, rides: archiveActs.map((a) => byId.get(a.id)) };
+  /* "updated" means the data changed — an unchanged file keeps its stamp so
      an idle hourly run has nothing to commit */
-  const prev = readJSON(FEED);
-  if (prev && JSON.stringify({ ...prev, updated: null }) === JSON.stringify({ ...feed, updated: null })) {
-    feed.updated = prev.updated;
-  }
-  writeJSON(FEED, feed);
+  const writeStamped = (p, obj) => {
+    const prev = readJSON(p);
+    if (prev && JSON.stringify({ ...prev, updated: null }) === JSON.stringify({ ...obj, updated: null })) {
+      obj.updated = prev.updated;
+    }
+    writeJSON(p, obj);
+  };
+  writeStamped(FEED, feed);
+  writeStamped(ARCHIVE, archive);
 
   const html = fs.readFileSync(PAGE, "utf8");
   const baked = bakePage(html, feed);
   if (baked !== html) fs.writeFileSync(PAGE, baked);
 
-  console.log(`Wrote ${FEED}: ${feed.season.rides} rides, ${feed.season.mi} mi, ${feed.season.ft} ft; ` +
-    `${fetched} ride file(s) fetched, ${reused} reused, ${pruned} pruned; page ${baked !== html ? "re-baked" : "unchanged"}.`);
+  console.log(`Wrote ${FEED}: ${feed.season.rides} rides this season (${feed.season.mi} mi, ${feed.season.ft} ft), ` +
+    `${archive.rides.length} in ${ARCHIVE}; ${fetched} ride file(s) fetched, ${reused} reused, ${pruned} pruned; ` +
+    `page ${baked !== html ? "re-baked" : "unchanged"}.`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

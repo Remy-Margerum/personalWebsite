@@ -10,6 +10,7 @@
   var R = window.CyclingRender;
   if (!R) return;
   var FEED_URL = '/assets/data/cycling/feed.json';
+  var ARCHIVE_URL = '/assets/data/cycling/archive.json';   /* rides before this season */
   var RIDE_DIR = '/assets/data/cycling/rides/';
   var RECENT = 8;                             /* rides shown before "show all" */
   var EVENT = { y: 2026, m: 9, d: 17 };       /* Ride Santa Barbara 100 (m is 0-based) */
@@ -20,7 +21,7 @@
   var MONTHS = R.MONTHS;
   var esc = R.esc, fmtInt = R.fmtInt, fmtHMS = R.fmtHMS, longDate = R.longDate;
   var DASH = '–';
-  var feed = null, showingAll = false;
+  var feed = null, archive = null, showingAll = false;
 
   function clamp(v, lo, hi) { return Math.min(Math.max(v, lo), hi); }
   function closest(el, cls) {
@@ -78,17 +79,42 @@
   }
 
   /* ---------- ride list ---------- */
+  /* the feed carries this season; older rides sit in archive.json and load
+     the first time they are asked for */
+  function totalCount() {
+    return feed.total && feed.total.rides > feed.rides.length ? feed.total.rides : feed.rides.length;
+  }
   function renderRides() {
     var list = document.getElementById('ride-list');
     if (!list || !feed || !feed.rides) return;
-    list.innerHTML = feed.rides.length ? R.rideListHTML(feed.rides, showingAll ? 0 : RECENT)
+    var rides = showingAll && archive ? feed.rides.concat(archive.rides || []) : feed.rides;
+    var shown = showingAll ? rides.length : Math.min(RECENT, rides.length);
+    list.innerHTML = rides.length ? R.rideListHTML(rides, showingAll ? 0 : RECENT)
       : '<p class="event-note">No rides logged yet this season.</p>';
     var more = document.getElementById('ride-more');
     if (more) {
-      var show = feed.rides.length > RECENT && !showingAll;
+      var show = totalCount() > shown;
       more.hidden = !show;
-      if (show) more.textContent = 'Show all ' + feed.rides.length + ' rides';
+      if (show) more.textContent = 'Show all ' + totalCount() + ' rides';
     }
+  }
+  function showAll() {
+    showingAll = true;
+    if (archive || !feed.total || feed.total.rides <= feed.rides.length) {
+      renderRides();
+      return Promise.resolve();
+    }
+    var more = document.getElementById('ride-more');
+    if (more) more.textContent = 'Loading rides…';
+    return fetch(ARCHIVE_URL, { cache: 'no-cache' }).then(function (r) {
+      if (!r.ok) throw new Error('archive ' + r.status);
+      return r.json();
+    }).then(function (a) {
+      archive = a && a.rides ? a : { rides: [] };
+      renderRides();
+    }).catch(function () {
+      renderRides();      /* the button stays, so a retry is one click away */
+    });
   }
 
   function setOpen(card, open, updateHash) {
@@ -132,28 +158,26 @@
       });
     }
     var more = document.getElementById('ride-more');
-    if (more) {
-      more.addEventListener('click', function () {
-        showingAll = true;
-        renderRides();
-      });
-    }
+    if (more) more.addEventListener('click', showAll);
   }
 
-  /* #ride-<id> deep-links straight to an open ride */
+  /* #ride-<id> deep-links straight to an open ride, wherever it sits */
+  function reveal(card) {
+    setOpen(card, true, false);
+    setTimeout(function () { card.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 50);
+  }
   function openFromHash() {
     var m = /^#ride-([A-Za-z0-9_-]+)$/.exec(location.hash || '');
     if (!m) return;
-    var id = m[1], i;
-    if (feed && feed.rides && !showingAll) {
-      for (i = RECENT; i < feed.rides.length; i++) {
-        if (String(feed.rides[i].id) === id) { showingAll = true; renderRides(); break; }
-      }
-    }
+    var id = m[1];
     var card = document.getElementById('ride-' + id);
-    if (!card) return;
-    setOpen(card, true, false);
-    setTimeout(function () { card.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 50);
+    if (card) { reveal(card); return; }
+    if (feed && feed.rides && !showingAll) {
+      showAll().then(function () {
+        var c = document.getElementById('ride-' + id);
+        if (c) reveal(c);
+      });
+    }
   }
 
   /* ---------- ride detail ---------- */
@@ -620,6 +644,12 @@
     feed = f;
     var row = document.querySelector('.stat-row');
     if (row && f.season) row.innerHTML = R.seasonHTML(f.season);
+    var at = document.getElementById('ride-alltime');
+    if (at) {
+      var line = R.allTimeHTML(f.total, f.season);
+      at.innerHTML = line;
+      at.hidden = !line;
+    }
     var wk = document.getElementById('weekly-chart');
     if (wk && f.weeks && f.weeks.length) {
       wk.innerHTML = R.weeksSVG(f.weeks);

@@ -167,6 +167,14 @@
     .zone-bars .zv b { color: var(--ink); font-weight: 600; }
     .detail-foot { font-size: .9rem; color: var(--muted); font-style: italic; margin-top: 1.5rem; }
     .show-all { text-align: center; margin: 1.8rem 0 0; }
+    .all-time {
+      text-align: center;
+      font-style: italic;
+      color: var(--muted);
+      max-width: var(--measure);
+      margin: 1.8rem auto 0;
+    }
+    .all-time b { color: var(--ink); font-weight: 600; font-style: normal; }
     .wk-bar.is-hot { fill: var(--brown-2); }
   </style>
 </head>
@@ -240,6 +248,9 @@
 <div><div class="num" data-stat="rides">12</div><div class="lbl">Rides</div></div><div><div class="num" data-stat="miles">156</div><div class="lbl">Miles</div></div><div><div class="num" data-stat="feet">5,184</div><div class="lbl">Feet Climbed</div></div><div><div class="num" data-stat="hours">12:09</div><div class="lbl">Hours</div></div>
 <!-- /cycling:season -->
       </div>
+      <!-- cycling:alltime -->
+<p class="all-time" id="ride-alltime" hidden></p>
+<!-- /cycling:alltime -->
     </div>
   </section>
 

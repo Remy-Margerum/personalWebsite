@@ -110,6 +110,19 @@
       '<line x1="4" y1="60" x2="276" y2="60" stroke="' + LINE + '" stroke-width="1"/></svg></div>';
   }
 
+  /* "All time: 212 rides · 3,410 miles · …, since March 2023" — only once
+     the history reaches beyond the current season */
+  function allTimeHTML(total, season) {
+    if (!total || !season || !(total.rides > season.rides)) return '';
+    var s = 'All time: <b>' + fmtInt(total.rides) + '</b> rides · <b>' + fmtInt(total.mi) +
+      '</b> miles · <b>' + fmtInt(total.ft) + '</b> ft climbed · <b>' + fmtHM(total.sec) + '</b> hours';
+    if (total.since) {
+      var p = parseYMD(total.since);
+      s += ', since ' + MONTHS[p.m] + ' ' + p.y;
+    }
+    return s;
+  }
+
   function rideStatsHTML(r) {
     var s = '<span><b>' + (+r.mi).toFixed(1) + '</b> mi</span>' +
       '<span><b>' + fmtInt(r.ft) + '</b> ft climbed</span>' +
@@ -167,7 +180,7 @@
   return {
     esc: esc, fmtInt: fmtInt, fmtHM: fmtHM, fmtHMS: fmtHMS, parseYMD: parseYMD,
     longDate: longDate, shortDate: shortDate,
-    seasonHTML: seasonHTML, weeksSVG: weeksSVG, sparkSVG: sparkSVG,
+    seasonHTML: seasonHTML, allTimeHTML: allTimeHTML, weeksSVG: weeksSVG, sparkSVG: sparkSVG,
     rideCardHTML: rideCardHTML, rideListHTML: rideListHTML, updatedText: updatedText,
     MONTHS: MONTHS, MONTHS_SHORT: MONTHS_SHORT,
     colors: { ink: INK, muted: MUTED, line: LINE, brown: BROWN }

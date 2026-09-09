@@ -36,8 +36,8 @@ assets/js/fishing-data.js Channel Islands shoreline + fishing spots (generated)
 assets/img/             Photos + favicon; assets/img/pdf/<slug>/ holds pre-rendered
                         page images (150 DPI JPGs, generated with PyMuPDF)
 assets/files/           Resume + academic PDFs (download links)
-assets/data/            Generated data: cycling/feed.json and
-                        cycling/rides/<id>.json (hourly, from Intervals.icu),
+assets/data/            Generated data: cycling/feed.json, cycling/archive.json
+                        and cycling/rides/<id>.json (hourly, from Intervals.icu),
                         cycling-brief.json and fishing-brief.json (weekly
                         AI notes)
 scripts/                Node generators run by GitHub Actions:
@@ -85,8 +85,10 @@ The cycling page reads static JSON that a scheduled action keeps current.
 hour (and on demand from the Actions tab); the script pulls the season's
 rides from the Intervals.icu API and commits
 
-- `assets/data/cycling/feed.json` — season totals, miles per Monday-week,
-  and every ride of the season with an elevation sparkline;
+- `assets/data/cycling/feed.json` — this season's totals, all-time totals,
+  miles per Monday-week, and every ride of the season with an elevation
+  sparkline; `archive.json` holds every earlier ride on record, which the
+  page loads the first time "Show all" is clicked;
 - `assets/data/cycling/rides/<id>.json` — one file per ride with what the
   page's "Ride details" panel shows: downsampled distance / altitude /
   speed / heart-rate / power / cadence streams, mile splits, climbs, best
@@ -116,7 +118,8 @@ Setup:
 
 Optional env vars (set them on the workflow step): `INTERVALS_ATHLETE_ID`
 (defaults to `0`, the key's owner), `SEASON_START` (defaults to January 1
-of the current year), `RIDE_TYPES` (defaults to
+of the current year), `HISTORY_START` (how far back to pull; defaults to
+`2000-01-01`, i.e. everything Intervals.icu has), `RIDE_TYPES` (defaults to
 `Ride,GravelRide,MountainBikeRide` — add `EBikeRide` or `VirtualRide` if
 rides are missing from the page). Bump `DETAIL_VERSION` in the script to
 rebuild every ride file after a format change.
