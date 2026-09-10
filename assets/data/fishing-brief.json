@@ -1,7 +1,8 @@
 {
-  "generated": "2026-09-09T17:19:12.351Z",
-  "weekend": "Sat 9/12–Sun 9/13",
-  "headline": "Small-craft advisory outer waters — stay inside, fish Saturday",
-  "body": "A small-craft advisory runs through late Friday night for the outer waters and the San Miguel/Santa Rosa zone, and the weekend looks no better: NW 25–35 kt with 8–11 ft seas out west and south Saturday night into Sunday. Inside the east channel it's civil — light morning winds, 3–5 ft, patchy morning fog, west 5–10 kt Saturday.\n\nThe long runs are off. Santa Rosa Flats has the only 64–68 °F water at 64.3 °F Saturday, but it's blowing 22–27 kt with 6–8 ft seas both days, so bluefin and the Flats rockfish patches are out; San Nicolas at 69.5 °F is 73 nm into the same NW blow, and Osborn isn't worth threading 8–11 ft seas for 71 °F water.\n\nSaturday is your day. Run the backside of Santa Cruz early for yellowtail — 72.4 °F, 6 kn and 3.5 ft in the morning, with west wind and gusts to 19 building by late afternoon. Or work the Goleta–Carpinteria sand for halibut in 3.2 ft and near-glass at dawn. Sunday's morning is lighter still on the backside, but seas build behind it.",
-  "model": "claude-opus-5"
+  "generated": "2026-09-10T19:13:40.193Z",
+  "label": "Bluefin outlook",
+  "weekend": "Mon 9/14–Tue 9/15",
+  "headline": "Bluefin break sits under 8-ft seas — skip the long run",
+  "body": "Safety first: the outer and island waters (PZZ673, PZZ676) are under a small-craft advisory through Saturday afternoon and a gale watch Saturday evening into Monday morning. Even as it eases, Monday still shows NW 25–30 kt and seas 8–11 ft dropping to 7–9 out west, with 7–10 ft around San Nicolas.\n\nHere's the bluefin problem. The only 64–68 °F break water is at Santa Rosa Flats on Monday (64.9 °F) — but that's under 8.2-ft seas and NW gusts to 12, right in the beat-up zone. By Tuesday the Flats warm to 70.7 °F, off the break entirely. Osborn (70.5/70.4) and San Nicolas (68.8/68.7) sit above the target all window, and San Nic is a 73-nm run into gale-watch seas. There's no day where the break water and a workable ride line up. Pass on the dedicated bluefin trip.\n\nIf you still want to fish, stay inside: backside Santa Cruz yellowtail Tuesday (72.8 °F, 3-ft seas) or the Goleta–Carpinteria halibut flats, calm both days.",
+  "model": "claude-opus-4-8"
 }
