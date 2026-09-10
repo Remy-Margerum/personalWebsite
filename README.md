@@ -38,7 +38,9 @@ assets/data/            Generated data (fishing-brief.json, written daily
 scripts/                Node generators run by GitHub Actions
                         (fishing-brief.mjs drafts the weekend outlook with
                         the Claude API — needs the ANTHROPIC_API_KEY repo
-                        secret; without it the workflow no-ops)
+                        secret; without it the workflow no-ops;
+                        a scripts/fishing-brief-override.json can pin a
+                        one-off window/focus — see the script header)
 infra/owntracks-relay/  Cloud Run relay for the live boat marker (service
                         owntracks-relay, project margerum; POST token lives
                         only in the Cloud Run env var, never in this repo)

@@ -10,6 +10,11 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const UA = { "User-Agent": "remymargerum.com fishing brief" };
 const OUT = "assets/data/fishing-brief.json";
+/* Optional one-off override of the outlook window and focus, e.g.
+   { "days": ["2026-09-14", "2026-09-15"], "focus": "bluefin" }.
+   Honored until the last listed day has passed (Pacific time), then
+   ignored — so the file can simply be deleted once the trip is over. */
+const OVERRIDE = "scripts/fishing-brief-override.json";
 
 const SPOTS = [
   { id: "harbor", name: "Santa Barbara Harbor", lat: 34.4, lon: -119.69 },
@@ -48,6 +53,35 @@ function weekendDates() {
   return [sat, sun];
 }
 
+function readOverride() {
+  if (!fs.existsSync(OVERRIDE)) return null;
+  let o;
+  try {
+    o = JSON.parse(fs.readFileSync(OVERRIDE, "utf8"));
+  } catch (err) {
+    console.error(`${OVERRIDE}: ${err.message} — ignoring.`);
+    return null;
+  }
+  const days = (Array.isArray(o.days) ? o.days : [])
+    .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+  if (!days.length) return null;
+  if (laDate(0) > days[days.length - 1]) {
+    console.log(`${OVERRIDE}: last day ${days[days.length - 1]} has passed — ignoring.`);
+    return null;
+  }
+  return { days, focus: typeof o.focus === "string" ? o.focus : null };
+}
+
+const FOCUS = {
+  bluefin:
+    "This edition is a bluefin-tuna special: the reader is planning a dedicated bluefin " +
+    "trip on the listed days. Make the whole brief about the bluefin call — which of the " +
+    "three bluefin grounds has 64–68 °F water and a workable wind and sea window to get " +
+    "there and back, which day is the better call, and whether the long run is worth it " +
+    "at all. Mention other species only in a closing sentence, as a fallback if bluefin " +
+    "is not reachable.",
+};
+
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 async function getJson(url, headers = {}) {
   let lastErr;
@@ -64,10 +98,7 @@ async function getJson(url, headers = {}) {
   throw lastErr;
 }
 
-async function gather() {
-  const [sat, sun] = weekendDates();
-  const days = [sat, sun];
-
+async function gather(days) {
   // NWS coastal waters forecast — full product text (synopsis + zones)
   let cwfText = "(NWS coastal waters forecast unavailable)";
   try {
@@ -131,14 +162,24 @@ async function gather() {
     });
   });
 
-  return { sat, sun, cwfText, table };
+  return { cwfText, table };
 }
 
 async function main() {
-  const { sat, sun, cwfText, table } = await gather();
-  const weekend = `${fmtDay(sat)}–${fmtDay(sun)}`;
-  console.log(`Weekend ${weekend}: ${table.length} forecast rows, ` +
+  const override = readOverride();
+  const days = override ? override.days : weekendDates();
+  const label = !override ? "Weekend outlook"
+    : override.focus === "bluefin" ? "Bluefin outlook" : "Outlook";
+  const { cwfText, table } = await gather(days);
+  const weekend = `${fmtDay(days[0])}–${fmtDay(days[days.length - 1])}`;
+  console.log(`${label} ${weekend}: ${table.length} forecast rows, ` +
     `CWF ${cwfText.length} chars.`);
+  const covered = table.filter((r) => Object.keys(r).length > 2).length;
+  if (!covered) {
+    /* the point models reach 8 days out — an override farther than that
+       (or a stale one) would have Claude writing from the NWS text alone */
+    throw new Error(`no point-forecast data covers ${weekend}`);
+  }
   if (!process.env.ANTHROPIC_API_KEY) {
     console.log("ANTHROPIC_API_KEY not set — data gathered, skipping generation.");
     return;
@@ -153,17 +194,20 @@ async function main() {
     "Santa Barbara Island west side, Osborn SW arc) in 66–74 °F water; rockfish on the banks " +
     "(Pt. Conception ledges, Santa Rosa Flats hard patches, south of San Miguel, Webster Point); " +
     "halibut on the 40–120 ft sand (Goleta–Carpinteria flats, Bechers Bay). " +
-    "Write a brief for the coming weekend from ONLY the forecast data provided: 1) the weather " +
+    "Write a brief for the outlook window given in the message from ONLY the forecast data " +
+    "provided: 1) the weather " +
     "and sea state in plain terms, leading with any small-craft advisory or safety concern; " +
     "2) what to target and where, given the wind windows, seas, and water temperatures — be " +
     "specific about which day and which grounds are the better call, and say when the long runs " +
     "are not worth it; 3) note the Santa Barbara Island / Osborn area no-take reserve only if " +
     "you send readers there. Never invent numbers not in the data. Output format: first line is " +
     "a headline under 70 characters (no quotes, no trailing period); then a blank line; then " +
-    "the body, 120–190 words, plain prose, no headings or bullet lists.";
+    "the body, 120–190 words, plain prose, no headings or bullet lists." +
+    (override?.focus ? "\n\n" + (FOCUS[override.focus] ||
+      `This edition should focus on ${override.focus}.`) : "");
 
   const user =
-    `Weekend: ${weekend} (analysis drafted ${fmtDay(laDate(0))}).\n\n` +
+    `${label}: ${weekend} (analysis drafted ${fmtDay(laDate(0))}).\n\n` +
     `Point forecasts (Open-Meteo; wind kn with gusts, seas ft at midday, SST °F at midday):\n` +
     `${JSON.stringify(table, null, 1)}\n\n` +
     `NWS Los Angeles/Oxnard coastal waters forecast (synopsis + zones; PZZ650 = channel, ` +
@@ -196,7 +240,8 @@ async function main() {
   fs.mkdirSync("assets/data", { recursive: true });
   fs.writeFileSync(OUT, JSON.stringify({
     generated: new Date().toISOString(),
-    weekend,
+    label,
+    weekend, // the outlook window — the weekend unless overridden
     headline,
     body,
     model: response.model,

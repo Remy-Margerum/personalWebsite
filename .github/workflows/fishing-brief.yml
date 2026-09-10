@@ -3,6 +3,9 @@ name: Fishing weekend brief
 on:
   schedule:
     - cron: "45 13 * * 3" # ~6:45 AM Pacific, Wednesdays
+    # one-off: Sun 2026-09-13 refresh for the Mon/Tue bluefin override
+    # (scripts/fishing-brief-override.json) — remove both after 2026-09-15
+    - cron: "45 13 13 9 *"
   workflow_dispatch: {}
 
 permissions:

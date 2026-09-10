@@ -1,0 +1,5 @@
+{
+  "why": "One-off: bluefin-focused outlook for a Mon/Tue trip. Ignored automatically once the last day has passed; delete this file afterwards.",
+  "days": ["2026-09-14", "2026-09-15"],
+  "focus": "bluefin"
+}

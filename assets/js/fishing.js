@@ -1591,7 +1591,7 @@
       var body = document.getElementById('fish-brief-body');
       if (!wrap || !body) return;
       body.textContent = j.body;
-      wrap.title = (j.weekend ? 'Weekend outlook ' + j.weekend + ' — ' : '') +
+      wrap.title = (j.weekend ? (j.label || 'Weekend outlook') + ' ' + j.weekend + ' — ' : '') +
         'AI-drafted ' + fmtDay(j.generated.slice(0, 10)) + ' from the forecasts on this page';
       wrap.hidden = false;
     }).catch(function () {});
