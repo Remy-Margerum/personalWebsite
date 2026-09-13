@@ -1,8 +1,10 @@
 name: Cycling training note
 
+# Redrafts assets/data/cycling-brief.json on demand. The note is normally
+# written by the Cycling rides workflow, in the job that pulls the rides,
+# each time a new ride is added; this workflow is the manual path — use it
+# after changing the prompt, or to redraft without waiting for a ride.
 on:
-  schedule:
-    - cron: "45 13 * * 3" # ~6:45 AM Pacific, Wednesdays
   workflow_dispatch: {}
 
 permissions:
@@ -38,4 +40,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Update cycling training note"
+          # the rides workflow may have pushed meanwhile
+          git pull --rebase origin "${GITHUB_REF_NAME}"
           git push

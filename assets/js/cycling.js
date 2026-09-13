@@ -5,7 +5,7 @@
    "Ride details" opens a panel built from assets/data/cycling/rides/<id>.json:
    stat tiles, distance-aligned charts with a shared crosshair, climbs, best
    efforts, time in zones, laps and mile splits. Also the days-out counter,
-   the weekly AI note and today's temperature curve. */
+   the AI training note and today's temperature curve. */
 (function () {
   var R = window.CyclingRender;
   if (!R) return;
@@ -619,21 +619,21 @@
     }).then(renderWx).catch(function () { /* no forecast — section stays hidden */ });
   }
 
-  /* ---------- weekly AI training note (written by a scheduled action) ---------- */
+  /* ---------- AI training note (redrafted whenever a ride is added) ---------- */
   function loadBrief() {
     fetch('/assets/data/cycling-brief.json').then(function (r) {
       return r.ok ? r.json() : null;
     }).then(function (j) {
       if (!j || !j.generated || !j.body) return;
       var age = (Date.now() - new Date(j.generated).getTime()) / 86400000;
-      /* drafted Wednesday mornings for the week ahead; a missed run drops
-         off after about a week rather than showing a stale plan */
-      if (age > 8) return;
+      /* drafted after the latest ride, and it plans the days just after it;
+         once it is that old the plan is stale, so drop it rather than show it */
+      if (age > 10) return;
       var wrap = document.getElementById('ride-brief');
       var body = document.getElementById('ride-brief-body');
       if (!wrap || !body) return;
       body.textContent = j.body;
-      wrap.title = (j.week ? 'Week of ' + j.week + ' — ' : '') +
+      wrap.title = (j.ride ? 'After ' + j.ride + ' — ' : '') +
         'AI-drafted ' + longDate(j.generated.slice(0, 10)) + ' from this page’s ride data';
       wrap.hidden = false;
     }).catch(function () {});

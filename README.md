@@ -38,14 +38,16 @@ assets/img/             Photos + favicon; assets/img/pdf/<slug>/ holds pre-rende
 assets/files/           Resume + academic PDFs (download links)
 assets/data/            Generated data: cycling/feed.json, cycling/archive.json
                         and cycling/rides/<id>.json (hourly, from Intervals.icu),
-                        cycling-brief.json and fishing-brief.json (weekly
-                        AI notes)
+                        cycling-brief.json (AI training note, redrafted each
+                        time a ride is added) and fishing-brief.json (weekly
+                        AI note)
 scripts/                Node generators run by GitHub Actions:
                         cycling-rides.mjs pulls rides from Intervals.icu
                         (needs the INTERVALS_API_KEY repo secret);
-                        cycling-brief.mjs / fishing-brief.mjs draft the
-                        weekly notes with the Claude API (ANTHROPIC_API_KEY —
-                        without it those workflows no-op)
+                        cycling-brief.mjs (run by that same workflow when a
+                        ride is added) / fishing-brief.mjs draft the AI notes
+                        with the Claude API (ANTHROPIC_API_KEY — without it
+                        those steps no-op)
 infra/owntracks-relay/  Cloud Run relay for the live boat marker (service
                         owntracks-relay, project margerum; POST token lives
                         only in the Cloud Run env var, never in this repo)
@@ -102,9 +104,22 @@ nothing in this chain touches Strava. Only aggregates and curves are
 stored — no GPS coordinates, maps or start locations. Per-ride files are
 cached and fetched again only when Intervals.icu re-analyzes a ride or its
 headline numbers change, so an idle hour is one API call and no commit
-(a personal API key allows 5,000 calls a day). The weekly training note
-(`cycling-brief.mjs`) reads the same `feed.json`. A ride can be linked
+(a personal API key allows 5,000 calls a day). A ride can be linked
 directly as `/cycling/#ride-<id>`.
+
+The training note under the page heading is written by `cycling-brief.mjs`
+from that same `feed.json` plus the week's Open-Meteo forecast, and judges
+training against the event's **100 KM + Climb** route — 62 miles with the
+timed Gibraltar ascent. It is redrafted whenever the hourly sync adds a
+ride, not on a schedule: `cycling-rides.mjs` compares the ride ids it just
+pulled against the ones already in `feed.json` and sets the `new_ride` /
+`new_ride_ids` step outputs, and the same job then runs the note generator
+and commits the new note alongside the rides. A run that adds nothing costs
+no Claude call. The **Cycling training note** workflow runs the generator by
+hand, for a redraft after a prompt change. It needs the `ANTHROPIC_API_KEY`
+Actions secret; without it the step logs the gathered data and leaves the
+existing note in place. The page hides a note older than ten days rather
+than showing a stale plan.
 
 Setup:
 

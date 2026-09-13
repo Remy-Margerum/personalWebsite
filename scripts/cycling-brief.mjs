@@ -1,27 +1,32 @@
-/* Weekly training note for /cycling/.
+/* Training note for /cycling/, written after each new ride.
    Reads the season's rides from assets/data/cycling/feed.json (kept
    current by scripts/cycling-rides.mjs and its hourly workflow) and the
-   week's riding weather from Open-Meteo, has Claude draft a short note on
-   where training stands against the Ride Santa Barbara 100, and writes
-   assets/data/cycling-brief.json for the page to display.
-   Run by .github/workflows/cycling-brief.yml (Wednesday mornings).
+   coming week's riding weather from Open-Meteo, has Claude draft a short
+   note on where training stands against the Ride Santa Barbara 100's
+   100 KM + Climb route, and writes assets/data/cycling-brief.json for the
+   page to display.
 
-   Requires ANTHROPIC_API_KEY (repo secret); exits cleanly without it. */
+   Run by .github/workflows/cycling-rides.yml, in the same job that pulls
+   the rides, whenever that pull adds a ride — so the note on the page is
+   always the one written after the latest ride. The Cycling training note
+   workflow runs it by hand for a one-off redraft.
+
+   Requires ANTHROPIC_API_KEY (repo secret); exits cleanly without it.
+   Optional NEW_RIDE_IDS (comma-separated ride ids the sync just added, set
+   by the workflow) so the note can speak to the ride just logged. */
 import fs from "node:fs";
 import Anthropic from "@anthropic-ai/sdk";
 
 const FEED = "assets/data/cycling/feed.json";
 const OUT = "assets/data/cycling-brief.json";
-/* Ride Santa Barbara 100 — the date the page counts down to. The note's
-   job is the route decision: the flat-ish 100 km, or the same distance
-   with the timed Gibraltar ascent in it. Figures from ridesb100.com. */
+/* Ride Santa Barbara 100 — the date the page counts down to. The route is
+   settled: the 100 KM + Climb, the 62 miles with the timed Gibraltar
+   ascent in it. The note's job is how training is tracking against it.
+   Figures from ridesb100.com. */
 const EVENT = {
   name: "Ride Santa Barbara 100",
   date: "2026-10-17",
-  routes: [
-    { name: "100 KM Coastal", miles: 62, climb_ft: 4000, gibraltar: false },
-    { name: "100 KM + Climb", miles: 62, climb_ft: 6600, gibraltar: true },
-  ],
+  route: { name: "100 KM + Climb", miles: 62, climb_ft: 6600 },
   gibraltar: "6.1 miles at about 8%, gaining 2,551 ft — the ride's only " +
     "competitively timed segment",
 };
@@ -79,7 +84,7 @@ async function gather() {
     throw new Error("ride feed missing season/weeks");
   }
 
-  /* the week ahead: today (Wednesday) through next Tuesday */
+  /* the week ahead: today through six days out */
   const days = [];
   for (let i = 0; i < 7; i++) days.push(laDate(i));
 
@@ -119,19 +124,31 @@ async function gather() {
 async function main() {
   const { feed, forecast, days } = await gather();
   const today = laDate(0);
-  const week = `${fmtDay(days[0])}–${fmtDay(days[6])}`;
+  const ahead = `${fmtDay(days[0])}–${fmtDay(days[6])}`;
   const toEvent = daysBetween(today, EVENT.date);
 
   /* last 6 weeks of volume is the useful trend; the whole season is noise */
   const recentWeeks = feed.weeks.slice(-6).map((w) => ({
-    week_of: fmtDay(w.start), miles: w.mi,
+    week_of: fmtDay(w.start), miles: w.mi, climb_ft: w.ft,
   }));
-  const rides = (feed.rides || []).slice(0, 6).map((r) => ({
+  const allRides = feed.rides || [];
+  const asRide = (r) => ({
     day: fmtDay(r.date), name: r.name, miles: r.mi,
     climb_ft: r.ft, time: fmtHM(r.sec), avg_mph: r.mph,
-  }));
+  });
+  const rides = allRides.slice(0, 6).map(asRide);
 
-  console.log(`Week ${week}: ${recentWeeks.length} weeks of volume, ` +
+  /* the ride that triggered this note: what the sync just added, or, run by
+     hand, simply the newest ride on the feed */
+  const added = new Set((process.env.NEW_RIDE_IDS || "").split(",")
+    .map((s) => s.trim()).filter(Boolean));
+  const newRides = added.size
+    ? allRides.filter((r) => added.has(String(r.id)))
+    : allRides.slice(0, 1);
+  const latest = newRides[0] || allRides[0] || null;
+  const latestLabel = latest ? `${fmtDay(latest.date)} ${latest.name}` : null;
+
+  console.log(`Note after ${latestLabel || "no ride"}: ${recentWeeks.length} weeks of volume, ` +
     `${rides.length} recent rides, ${forecast.length} forecast days, ` +
     `${toEvent} days to the event.`);
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -140,56 +157,63 @@ async function main() {
   }
 
   const system =
-    "You write the weekly training note for remymargerum.com/cycling — a personal training log " +
+    "You write the training note for remymargerum.com/cycling — a personal training log " +
     "for one rider preparing for the Ride Santa Barbara 100. The rider trains on local loops: " +
     "the Mesa, More Mesa, Hope Ranch, Goleta Beach, Butterfly Beach, and the foothill climbs " +
-    "behind town.\n\n" +
-    "THE CENTRAL QUESTION, and the spine of every note you write: the rider is choosing between " +
-    "two routes of the same distance — the 100 KM Coastal, and the 100 KM + Climb, which is the " +
-    "same 62 miles with the timed Gibraltar ascent in it. Gibraltar is the whole difference: " +
-    "about 2,600 ft of the route's extra climbing in one 6.1-mile, 8% push. So judge the training " +
-    "on two axes, and say plainly where it stands on each: DISTANCE — do the weekly volume and " +
-    "the longest single ride support 62 miles at all; and CLIMBING — does the elevation gain per " +
-    "ride, and the biggest climb done so far, support Gibraltar on tired legs after 30+ miles. " +
-    "Volume that supports the coastal route does not by itself support the climb. Name which " +
-    "route the current training actually points to, and what would have to change in the weeks " +
-    "left for the climb version to be the honest call.\n\n" +
-    "Write the note for the week ahead from ONLY the data provided: 1) where training stands " +
-    "against those two routes, reading the weekly mileage and climbing trend honestly — building, " +
-    "flat, or dropped off — and what that means with the event this close; 2) what this week " +
-    "should look like, using the forecast to say which days suit a long ride or a climbing day " +
-    "and which suit a short spin, mentioning heat, wind or rain only when the numbers warrant it. " +
+    "behind town. A new note is written each time a ride is logged, so write it as the note " +
+    "that follows the ride just ridden — open from that ride, not from the calendar.\n\n" +
+    "THE TARGET, and the spine of every note you write: the rider is training for the " +
+    "100 KM + Climb route — 62 miles with about 6,600 ft of climbing, including the timed " +
+    "Gibraltar ascent (about 2,600 ft of that climbing in one 6.1-mile, 8% push). The route " +
+    "is decided; do not weigh it against the flatter coastal option or suggest dropping the " +
+    "climb. Judge the training on two axes and say plainly where it stands on each: " +
+    "DISTANCE — do the weekly volume and the longest single ride support 62 miles; and " +
+    "CLIMBING — does the elevation gain per ride, and the biggest climb done so far, support " +
+    "Gibraltar on tired legs after 30+ miles. Volume that supports a flat 62 miles does not by " +
+    "itself support the climb, so treat climbing feet as its own measure, not a side note. Say " +
+    "what the new ride adds to each axis, and what the weeks left have to deliver for the climb " +
+    "to go well.\n\n" +
+    "Write the note from ONLY the data provided: 1) what the ride just logged did for the two " +
+    "axes, and where training stands against the route overall, reading the weekly mileage and " +
+    "climbing trend honestly — building, flat, or dropped off — and what that means with the " +
+    "event this close; 2) what the days ahead should look like, using the forecast to say which " +
+    "days suit a long ride or a climbing day and which suit a short spin or rest, mentioning " +
+    "heat, wind or rain only when the numbers warrant it. " +
     "Address the rider as 'you'. Be direct and encouraging without flattery — if the training is " +
-    "behind for the route in question, say so plainly and say what would help most. Never invent " +
+    "behind for the route, say so plainly and say what would help most. Never invent " +
     "numbers, ride names, routes, or events not in the data, and never give medical or injury " +
     "advice. Output format: first line is a headline under 70 characters (no quotes, no trailing " +
     "period); then a blank line; then the body, 110–170 words, plain prose, no headings or " +
     "bullet lists.";
 
   /* longest ride and biggest single climb are the two numbers the route
-     decision actually turns on, so hand them over already computed */
-  const allRides = feed.rides || [];
+     turns on, so hand them over already computed */
   const longest = allRides.reduce((a, r) => (r.mi > (a?.mi ?? -1) ? r : a), null);
   const steepest = allRides.reduce((a, r) => (r.ft > (a?.ft ?? -1) ? r : a), null);
 
   const user =
-    `Week ahead: ${week} (note drafted ${fmtDay(today)}).\n` +
+    (newRides.length > 1
+      ? `Just logged, and the reason for this note:\n` +
+        newRides.map((r) => ` - ${JSON.stringify(asRide(r))}`).join("\n") + `\n\n`
+      : latest
+        ? `Just logged, and the reason for this note: ${JSON.stringify(asRide(latest))}\n\n`
+        : `No ride on the feed yet.\n\n`) +
+    `Note drafted ${fmtDay(today)}; the days ahead are ${ahead}.\n` +
     `${EVENT.name} is ${EVENT.date} — ${toEvent} days out.\n\n` +
-    `Route options being weighed:\n` +
-    EVENT.routes.map((r) => ` - ${r.name}: ${r.miles} miles, about ${r.climb_ft} ft of climbing` +
-      (r.gibraltar ? ` (includes Gibraltar — ${EVENT.gibraltar})` : "")).join("\n") + `\n\n` +
-    (longest ? `Longest ride in the recent list: ${longest.mi} mi with ${longest.ft} ft climbed ` +
+    `Route being trained for: ${EVENT.route.name} — ${EVENT.route.miles} miles, about ` +
+    `${EVENT.route.climb_ft} ft of climbing, including Gibraltar (${EVENT.gibraltar}).\n\n` +
+    (longest ? `Longest ride of the season: ${longest.mi} mi with ${longest.ft} ft climbed ` +
       `(${fmtDay(longest.date)}).\n` : "") +
-    (steepest ? `Most climbing in a single recent ride: ${steepest.ft} ft over ${steepest.mi} mi ` +
+    (steepest ? `Most climbing in a single ride this season: ${steepest.ft} ft over ${steepest.mi} mi ` +
       `(${fmtDay(steepest.date)}).\n\n` : "\n") +
     `Season to date: ${feed.season.rides} rides, ${feed.season.mi} miles, ` +
     `${feed.season.ft} ft climbed, ${fmtHM(feed.season.sec)} riding time.\n\n` +
-    `Miles per week, oldest to newest (the last entry is the week in progress):\n` +
+    `Miles and climbing per week, oldest to newest (the last entry is the week in progress):\n` +
     `${JSON.stringify(recentWeeks, null, 1)}\n\n` +
     `Most recent rides:\n${JSON.stringify(rides, null, 1)}\n\n` +
     (forecast.length
-      ? `Santa Barbara daily forecast for the week ahead:\n${JSON.stringify(forecast, null, 1)}`
-      : `(No weather forecast available this week — write about training only.)`);
+      ? `Santa Barbara daily forecast for the days ahead:\n${JSON.stringify(forecast, null, 1)}`
+      : `(No weather forecast available — write about training only.)`);
 
   const client = new Anthropic();
   const response = await client.beta.messages.create({
@@ -218,7 +242,9 @@ async function main() {
   fs.mkdirSync("assets/data", { recursive: true });
   fs.writeFileSync(OUT, JSON.stringify({
     generated: new Date().toISOString(),
-    week,
+    ride: latestLabel,
+    ride_date: latest ? latest.date : null,
+    days_ahead: ahead,
     days_to_event: toEvent,
     headline,
     body,

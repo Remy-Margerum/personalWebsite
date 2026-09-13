@@ -16,7 +16,10 @@
    costs one API call. Rides that drop out of the season are pruned. No GPS
    coordinates are stored — only aggregates and curves.
 
-   Run by .github/workflows/cycling-rides.yml. Needs INTERVALS_API_KEY (repo
+   Run by .github/workflows/cycling-rides.yml, which also redrafts the page's
+   AI training note (scripts/cycling-brief.mjs) when this run adds a ride —
+   the new_ride / new_ride_ids step outputs below are what it keys off.
+   Needs INTERVALS_API_KEY (repo
    secret; Intervals.icu → Settings → Developer Settings). Optional:
    INTERVALS_ATHLETE_ID (default 0 = the key's owner), SEASON_START
    (YYYY-MM-DD, default January 1 of the current year), HISTORY_START
@@ -623,6 +626,20 @@ async function main() {
     rides: seasonActs.map((a) => byId.get(a.id)),
   };
   const archive = { updated: now, rides: archiveActs.map((a) => byId.get(a.id)) };
+
+  /* Which rides this run added, so the workflow can redraft the training
+     note only when there is a new ride to write about. Read before the feed
+     on disk is overwritten; a first run with no feed counts every ride as
+     new, and a re-analyzed ride is not new. */
+  const prevFeed = readJSON(FEED);
+  const prevIds = new Set((prevFeed?.rides || []).map((r) => String(r.id)));
+  const newIds = feed.rides.map((r) => String(r.id)).filter((id) => !prevIds.has(id));
+  if (process.env.GITHUB_OUTPUT) {
+    fs.appendFileSync(process.env.GITHUB_OUTPUT,
+      `new_ride=${newIds.length ? "true" : "false"}\n` +
+      `new_rides=${newIds.length}\n` +
+      `new_ride_ids=${newIds.join(",")}\n`);
+  }
   /* "updated" means the data changed — an unchanged file keeps its stamp so
      an idle hourly run has nothing to commit */
   const writeStamped = (p, obj) => {
@@ -642,6 +659,9 @@ async function main() {
   console.log(`Wrote ${FEED}: ${feed.season.rides} rides this season (${feed.season.mi} mi, ${feed.season.ft} ft), ` +
     `${archive.rides.length} in ${ARCHIVE}; ${fetched} ride file(s) fetched, ${reused} reused, ${pruned} pruned; ` +
     `page ${baked !== html ? "re-baked" : "unchanged"}.`);
+  console.log(newIds.length
+    ? `${newIds.length} new ride(s) this run (${newIds.join(", ")}) — the training note is redrafted.`
+    : "No new rides this run — the training note stands.");
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

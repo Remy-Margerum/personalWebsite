@@ -2,7 +2,9 @@ name: Cycling rides
 
 # Pulls the season's rides from Intervals.icu into assets/data/cycling/ and
 # re-bakes the cycling page's fallback HTML. Only commits when something
-# changed, so an idle hour costs one API call and no commit.
+# changed, so an idle hour costs one API call and no commit. When the pull
+# adds a ride, the same job redrafts the page's AI training note, so the
+# note always follows the latest ride.
 on:
   schedule:
     - cron: "20 * * * *" # hourly
@@ -24,12 +26,23 @@ jobs:
         with:
           node-version: 22
       - name: Pull rides from Intervals.icu
+        id: rides
         env:
           INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
         run: node scripts/cycling-rides.mjs
+      - name: Install dependencies
+        if: steps.rides.outputs.new_ride == 'true'
+        working-directory: scripts
+        run: npm install --no-fund --no-audit
+      - name: Draft the training note for the new ride
+        if: steps.rides.outputs.new_ride == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NEW_RIDE_IDS: ${{ steps.rides.outputs.new_ride_ids }}
+        run: node scripts/cycling-brief.mjs
       - name: Commit if changed
         run: |
-          git add -A assets/data/cycling cycling/index.html
+          git add -A assets/data/cycling cycling/index.html assets/data/cycling-brief.json
           # staged diff — a plain diff misses files that are brand-new
           if git diff --cached --quiet; then
             echo "No change."
@@ -38,6 +51,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Update cycling rides"
-          # another workflow may have pushed meanwhile (the weekly briefs)
+          # another workflow may have pushed meanwhile (the fishing brief)
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push
