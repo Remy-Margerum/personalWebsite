@@ -1156,6 +1156,52 @@ svg[data-view="structure"] .ch-isolbl { opacity: .45; }
   .fish-legend { top: .7rem; left: .7rem; width: 150px; }
 }
 
+/* Palomar knot guide — four line-drawn steps at the foot of the fishing page */
+.knot-intro { margin: -1.2rem auto 2rem; }
+.knot-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+.knot-step { text-align: center; }
+.knot-step svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.knot-step p { margin: .7rem 0 0; font-size: .97rem; line-height: 1.5; }
+.knot-num {
+  display: inline-block;
+  width: 1.55rem; height: 1.55rem; line-height: 1.55rem;
+  border-radius: 50%;
+  background: var(--brown);
+  color: var(--cream);
+  font-size: .82rem;
+  margin-right: .4rem;
+}
+.knot-step svg text { font-family: var(--serif); font-style: italic; font-size: 11px; fill: var(--muted); }
+.knot-ln, .knot-tag, .knot-dbl, .knot-dbl-in, .knot-hook {
+  fill: none; stroke-linecap: round; stroke-linejoin: round;
+}
+.knot-ln { stroke: var(--brown); stroke-width: 3; }
+.knot-tag { stroke: var(--brown-2); stroke-width: 3; }
+.knot-dbl { stroke: var(--brown); stroke-width: 7; }
+.knot-dbl-in { stroke: var(--paper); stroke-width: 1.6; }
+.knot-hook { stroke: var(--ink); stroke-width: 3.2; }
+.knot-eye { fill: var(--paper); stroke: var(--ink); stroke-width: 3; }
+.knot-arrow { fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-dasharray: 4 3; }
+.knot-ah { fill: var(--muted); }
+.knot-fine { margin-top: 1.6rem; }
+@media (max-width: 900px) {
+  .knot-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .knot-steps { grid-template-columns: minmax(0, 1fr); }
+}
+
 /* Utility */
 .center { text-align: center; }
 .mt-2 { margin-top: 2rem; }
