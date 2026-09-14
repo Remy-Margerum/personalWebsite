@@ -282,14 +282,28 @@
   });
   obsHit.addEventListener('mouseleave', hideTip);
 
-  /* program spots + troll routes — rebuilt whenever the target changes */
+  /* program zones, spots + troll routes — rebuilt whenever the target changes */
   var gSpots = el('g', {}, gMarks);
   var spotEls = [];
   var trollEls = [];
+  var zoneEls = [];
   function drawProgram() {
     while (gSpots.firstChild) gSpots.removeChild(gSpots.firstChild);
     spotEls = [];
     trollEls = [];
+    zoneEls = [];
+    /* a highlighted zone: a spot may carry a polygon (lon/lat) of the water
+       being worked around it — drawn shaded under the marks, named at the
+       spot, so the mark's tooltip and table row speak for the whole area */
+    prog.spots.forEach(function (s) {
+      if (!s.zone || s.zone.length < 3) return;
+      var d = '';
+      s.zone.forEach(function (p, i) {
+        var w = P(p[0], p[1]);
+        d += (i ? 'L' : 'M') + w[0].toFixed(1) + ' ' + w[1].toFixed(1);
+      });
+      zoneEls.push(el('path', { d: d + 'Z', 'class': 'ch-zone' }, gSpots));
+    });
     (prog.routes || []).forEach(function (rt) {
       var d = '';
       rt.pts.forEach(function (p, i) {
@@ -431,7 +445,9 @@
       e.lbl.setAttribute('x', e.w[0] + e.side * 9 * z);
       e.lbl.setAttribute('y', e.w[1] - 6 * z);
     });
-    /* troll routes: dash + arrow + label scale with the screen */
+    /* zones and troll routes: dash + arrow + label scale with the screen */
+    var zd = (6 * z) + ' ' + (4 * z);
+    zoneEls.forEach(function (p) { p.style.strokeDasharray = zd; });
     var td = (8 * z) + ' ' + (5 * z);
     trollEls.forEach(function (t) {
       if (t.style) { t.style.strokeDasharray = td; return; }
@@ -1577,21 +1593,22 @@
       ' <span class="muted">— beyond the NWS zone text, lower confidence</span>';
   }
 
-  /* ---------- weekly AI weekend brief (written by a scheduled action) ---------- */
+  /* ---------- daily AI bluefin brief (written by a scheduled action) ---------- */
   function loadBrief() {
     fetch('/assets/data/fishing-brief.json').then(function (r) {
       return r.ok ? r.json() : null;
     }).then(function (j) {
       if (!j || !j.generated || !j.body) return;
       var age = (Date.now() - new Date(j.generated).getTime()) / 86400000;
-      /* drafted Wednesday mornings, so it has to survive the weekend it
-         describes; a missed run drops off after about a week */
-      if (age > 8) return;
+      /* drafted each morning for today and tomorrow; a missed run drops
+         off after a couple of days rather than showing a stale call */
+      if (age > 3) return;
       var wrap = document.getElementById('fish-brief');
       var body = document.getElementById('fish-brief-body');
       if (!wrap || !body) return;
       body.textContent = j.body;
-      wrap.title = (j.weekend ? 'Weekend outlook ' + j.weekend + ' — ' : '') +
+      var span = j.window || j.weekend;
+      wrap.title = (span ? 'Bluefin outlook ' + span + ' — ' : '') +
         'AI-drafted ' + fmtDay(j.generated.slice(0, 10)) + ' from the forecasts on this page';
       wrap.hidden = false;
     }).catch(function () {});

@@ -39,8 +39,8 @@ assets/files/           Resume + academic PDFs (download links)
 assets/data/            Generated data: cycling/feed.json, cycling/archive.json
                         and cycling/rides/<id>.json (hourly, from Intervals.icu),
                         cycling-brief.json (AI training note, redrafted each
-                        time a ride is added) and fishing-brief.json (weekly
-                        AI note)
+                        time a ride is added) and fishing-brief.json (daily
+                        AI bluefin call for today and tomorrow)
 scripts/                Node generators run by GitHub Actions:
                         cycling-rides.mjs pulls rides from Intervals.icu
                         (needs the INTERVALS_API_KEY repo secret);

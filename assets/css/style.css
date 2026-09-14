@@ -954,6 +954,25 @@ svg[data-view="structure"] .ch-isolbl { opacity: .45; }
   vector-effect: non-scaling-stroke;
 }
 .ch-trollarrow { fill: var(--brown); opacity: .8; }
+/* highlighted zones — a shaded, dashed-edged area a program is working
+   right now (the bluefin triangle behind Santa Cruz and Anacapa) */
+.ch-zone {
+  fill: rgba(127, 76, 41, .13);
+  stroke: var(--brown);
+  stroke-width: 1.5;
+  opacity: .9;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.ch-zonelbl {
+  fill: var(--brown-2);
+  font-style: italic;
+  letter-spacing: .06em;
+  stroke: var(--paper);
+  stroke-width: .28em;
+  paint-order: stroke;
+  stroke-linejoin: round;
+}
 .ch-trolllbl {
   fill: var(--brown-2);
   font-style: italic;

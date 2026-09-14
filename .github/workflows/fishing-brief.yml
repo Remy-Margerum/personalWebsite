@@ -1,8 +1,11 @@
-name: Fishing weekend brief
+name: Fishing bluefin brief
 
+# Drafts the note under the fishing page's title each morning: a bluefin
+# call for today and tomorrow, from the NWS coastal waters forecast and the
+# Open-Meteo wind / wave / SST model at the chart's grounds.
 on:
   schedule:
-    - cron: "45 13 * * 3" # ~6:45 AM Pacific, Wednesdays
+    - cron: "45 12 * * *" # ~5:45 AM Pacific, daily
   workflow_dispatch: {}
 
 permissions:
@@ -37,5 +40,7 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Update fishing weekend brief"
+          git commit -m "Update fishing bluefin brief"
+          # the cycling workflows may have pushed meanwhile
+          git pull --rebase origin "${GITHUB_REF_NAME}"
           git push
