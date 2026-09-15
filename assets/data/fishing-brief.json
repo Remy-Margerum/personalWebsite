@@ -1,8 +1,8 @@
 {
-  "generated": "2026-09-14T17:42:45.086Z",
-  "window": "Mon 9/14–Tue 9/15",
+  "generated": "2026-09-15T17:16:19.107Z",
+  "window": "Tue 9/15–Wed 9/16",
   "target": "bluefin",
-  "headline": "Break sits off Santa Rosa, blown out; Tuesday is the calm day",
-  "body": "Safety first: a small craft advisory runs through late tonight for everything outside the islands, including the Santa Rosa waters and the outer banks — NW 20 to 30 kt, seas 8 to 11 ft out west and 7 to 10 ft outside. The channel itself is mild, 2 to 4 ft with light wind going SW 10 this afternoon, but the run is the problem, not the harbor. Tuesday the advisory drops: channel 2 to 3 ft, SE 10 to 15 early turning SW, the triangle middle 4.1 ft, patchy morning fog.\n\nTuesday is the day. The triangle holds no 64–68 water either day — corners read 72.9 west, 73.6 east, 70.8 at the south point today, and 73.9, 73.4, 71.6 tomorrow — so start the south point and work the southern edge into the basin, the only cool side available, and stay on bait. Today's only break water is Santa Rosa at 65.7, and it is unfishable; by Tuesday it warms to 70.3. Osborn at 71.4 and San Nicolas at 69.7 are not worth 68 or 73 nm.",
-  "model": "claude-opus-5"
+  "headline": "Bluefin: warm everywhere, no 64–68 break in the triangle",
+  "body": "Small-craft advisory for the outer waters holds until noon today, with 7–9 ft seas easing to 6–8 this afternoon out toward the Santa Rosa Flats and beyond; the channel itself is soft, 2–4 ft, and the triangle at midday reads 4.1 ft with light southerlies. Wednesday is the calmer day everywhere — channel 2–3 ft, the triangle near 3 ft, though a W breeze builds into the low teens by mid-afternoon.\n\nNow the hard part: there's no 64–68 water anywhere on the chart. The triangle corners read 73.9 at the west corner, 73.7 at the east, and 71.7 at the south point down in the basin — warm through and through, the break slid off south and well past our numbers. Coolest water sampled is San Nicolas at 69.6, still above the band and not worth a 73 nm run for warm water. Neither day is a true bluefin day. If you go, take Wednesday's slick and grind the south point on the coolest edge — but temper the expectations.",
+  "model": "claude-opus-4-8"
 }
