@@ -1,8 +1,8 @@
 {
-  "generated": "2026-09-23T17:27:56.680Z",
-  "window": "Wed 9/23–Thu 9/24",
+  "generated": "2026-09-24T17:32:44.153Z",
+  "window": "Thu 9/24–Fri 9/25",
   "target": "bluefin",
-  "headline": "Thursday's the day — work the triangle's cool south edge",
-  "body": "Today, Wednesday, carries a small-craft advisory in the outer waters — the Santa Rosa zone until noon, the offshore zone through this evening. The channel itself is easy: light winds, seas 2 to 4 ft, the triangle's middle near 4. But Santa Rosa Flats is ugly, 6.3 ft with NW gusts to 15. Thursday softens everywhere: channel seas 2 to 3 ft, light winds, the triangle around 3.3, the farther banks laying down. Thursday is the fishable day across the board.\n\nNow the break. The triangle reads warm — west corner 71.6, east corner 71.2, south point 69.5, the coolest by a wide margin. The 64–68 band isn't inside the triangle at all; the nearest true break is at Santa Rosa Flats, 68.5 today. But that water sits under the advisory and slop right now, and warms to 70.5 by Thursday — so the run west isn't worth it either day.\n\nStart at the south point, in the Santa Cruz Basin, on the coolest edge near 69.5–70, and push south toward the break. Go Thursday.",
-  "model": "claude-opus-4-8"
+  "headline": "No 64–68 water anywhere — the break has slid off the triangle",
+  "body": "Safety first: a small craft advisory covers the outer waters from Point Sal to Santa Cruz Island, including Santa Rosa, from late tonight through Saturday morning, with NW 15–25 kt and 6–9 ft Friday. That writes off Santa Rosa Flats; its own point forecast is already 5.1 ft today. Inside the channel it's mild — today SE 5–15 kt backing west, 2–3 ft, and 3.4 ft at the triangle's middle. Friday looks similar, light early, W 10–15 kt by afternoon, 3.3 ft, with the hurricane swells beginning to fill in.\n\nThe honest call: neither day is a bluefin day on temperature. Nothing in the data comes near the 64–68 band. The triangle's corners read 71.6 west, 71.8 east, and 69.8 at the south point in the Santa Cruz Basin (70.2 Friday) — the break has slid off the zone entirely, and the far grounds are warmer still, Osborn's SW flank 73.2 and San Nicolas 71.4. If you go, go today and work the south point for the coolest edge and bait. Skip the 68-nm run.",
+  "model": "claude-opus-5"
 }
