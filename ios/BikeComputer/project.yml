@@ -1,0 +1,48 @@
+# XcodeGen spec — run `xcodegen` in this folder to create BikeComputer.xcodeproj
+# (plus the generated Info.plist and entitlements). Don't commit the output.
+name: BikeComputer
+options:
+  bundleIdPrefix: com.remymargerum
+  deploymentTarget:
+    iOS: "26.0"   # HKWorkoutSession on iPhone needs iOS 26
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+packages:
+  RideKit:
+    path: RideKit
+targets:
+  BikeComputer:
+    type: application
+    platform: iOS
+    sources:
+      - path: BikeComputer
+    dependencies:
+      - package: RideKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.remymargerum.bikecomputer
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        # DEVELOPMENT_TEAM: ABCDE12345   # or pick your team in Signing & Capabilities
+    info:
+      path: BikeComputer/Info.plist
+      properties:
+        CFBundleDisplayName: Bike Computer
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIBackgroundModes: [location, bluetooth-central]
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        NSHealthShareUsageDescription: Reads heart rate from your AirPods during rides.
+        NSHealthUpdateUsageDescription: Saves rides to Apple Health as cycling workouts with route, power, cadence and distance.
+        NSLocationWhenInUseUsageDescription: Records your route, speed and distance while you ride.
+        NSBluetoothAlwaysUsageDescription: Connects to your power meter pedals for power and cadence.
+        NSMotionUsageDescription: Uses the barometer to measure elevation gain.
+    entitlements:
+      path: BikeComputer/BikeComputer.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []

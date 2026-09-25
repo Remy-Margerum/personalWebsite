@@ -51,6 +51,10 @@ scripts/                Node generators run by GitHub Actions:
 infra/owntracks-relay/  Cloud Run relay for the live boat marker (service
                         owntracks-relay, project margerum; POST token lives
                         only in the Cloud Run env var, never in this repo)
+ios/BikeComputer/       Personal iOS cycling app (not part of the site):
+                        AirPods Pro 3 heart rate, Favero Assioma power and
+                        cadence, GPS/barometer; uploads rides to
+                        Intervals.icu — see its README
 CNAME                   Custom domain for GitHub Pages (remymargerum.com)
 ```
 
