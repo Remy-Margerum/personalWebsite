@@ -52,10 +52,12 @@ simulator has no Bluetooth or heart rate, so use a real phone.
    team. HealthKit is already in the entitlements.
 4. Plug in the iPhone and run.
 
-Signing: a free Apple ID works, but the app expires after 7 days and you
-reinstall it from Xcode. A paid Apple Developer Program membership avoids
-that. If Xcode won't add HealthKit on a free team, you'll need the paid
-program.
+Signing: HealthKit (AirPods heart rate and the Apple Health save) needs the
+paid Apple Developer Program, US$99 a year. Apple's capability table doesn't
+offer HealthKit to free Apple ID teams. With the paid program, builds last a
+year and you can install through TestFlight. A free team could only run a
+version without HealthKit (pedals and GPS only), and it would expire every 7
+days.
 
 To test the logic without a phone, run this on macOS or Linux:
 
