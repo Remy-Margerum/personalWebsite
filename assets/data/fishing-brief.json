@@ -1,8 +1,8 @@
 {
-  "generated": "2026-09-28T19:49:58.337Z",
-  "window": "Mon 9/28–Tue 9/29",
+  "generated": "2026-09-29T18:15:02.272Z",
+  "window": "Tue 9/29–Wed 9/30",
   "target": "bluefin",
-  "headline": "Triangle all warm side; the break sits on blown-out Santa Rosa",
-  "body": "Small craft advisory everywhere this morning: the channel and Anacapa zones through this evening, the outer waters and the Santa Rosa zone through late Tuesday night. Expect NW 25 to 30 kt and 7 to 9 ft out west today, and a southerly swell running through Tuesday from two tropical systems well offshore.\n\nMonday is the day, and it's a dawn deal. The triangle middle has 8 to 10 kn NW early over 5.7 ft, then it falls apart — 13 kn by noon, 25 kn WNW gusting 29 by three. Tuesday starts harder, 15 kn g18 at six, and ends worse, 24 g30.\n\nPlacement is the problem. All three corners are warm: west 70, south 72.5, east 73. The 64–68 band is not inside the zone. Start on the west corner south of Santa Cruz, the coolest water and the edge the break lies beyond, and work bait.\n\nThe actual break is Santa Rosa Flats at 67.5, but it's 7.7 ft and 21 to 29 kn NW both days. Don't make that run. Osborn and San Nicolas are 72 to 73 — no break, not worth 68 or 73 miles.",
-  "model": "claude-opus-5"
+  "headline": "Break's off the triangle — Wednesday's the window, warm inside",
+  "body": "Today is a no. Small-craft advisory across every zone — the Channel through this evening, the outer waters through Wednesday morning. The triangle builds to a WNW gust of 21 by afternoon over 5-ft seas, and Santa Rosa Flats is flat blown out: 7-plus ft with NW 20–30. Sit it out.\n\nWednesday lays down. The Channel goes E 5–10 backing SW, seas 2–4 ft, and the triangle middle drops to near-calm by afternoon. That's your day to run.\n\nInside the triangle you're all on the warm side — east corner 71.8, south point 71.2, west corner (south of Santa Cruz) coolest at 70.9. The 64–68 break isn't in the triangle at all; it's slid west to Santa Rosa Flats, sitting 67.6 — the true cool water and the better bet. But the Flats stay 6–9 ft with NW filling back to a gust of 17 late. Worth the ride if your crew can take it. Otherwise start the west edge on the coolest water and follow bait toward it.",
+  "model": "claude-opus-4-8"
 }
