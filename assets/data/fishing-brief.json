@@ -1,8 +1,8 @@
 {
-  "generated": "2026-09-30T18:08:13.626Z",
-  "window": "Wed 9/30–Thu 10/1",
+  "generated": "2026-10-01T18:34:27.348Z",
+  "window": "Thu 10/1–Fri 10/2",
   "target": "bluefin",
-  "headline": "Triangle runs warm — break slides west to Santa Rosa",
-  "body": "Wednesday leads with the small-craft advisory: the outer waters and the Santa Rosa zone sat under SCA into this morning, seas out there 6 to 9 ft and the Flats showing 6.6 ft at midday. The east channel behind the islands is soft, 2–4 ft, and the triangle middle runs about 4.7 ft. Thursday is the sea day — light winds at dawn, seas subsiding toward 3.5 ft in the triangle, with W building to 10–12 kt at the islands by afternoon.\n\nThe bluefin problem: the triangle is a warm bathtub both days. West corner 71, east 72, south point 71.2 today, all a touch warmer tomorrow — no 64–68 water anywhere inside it. The break has slid off west. The only cool-side water is Santa Rosa Flats, 67.7 today inside the band, warming to 69 tomorrow. Today that water is right but the ride's ugly; tomorrow the Flats lay down but the edge creeps warm. If it's a day, it's Thursday — run the ~40 nm to the Flats and work the cool edge. Don't grid the triangle on temperature.",
-  "model": "claude-opus-4-8"
+  "headline": "Break slid west to Santa Rosa Flats — go today, fog first",
+  "body": "No advisories, but patchy dense fog is the real hazard this morning, visibility 1 NM or less in the channel and outer waters. Thursday is otherwise the soft day: light winds through midday, W 5–10 by afternoon, 2–3 ft in the channel and 3.4 ft out in the triangle. Friday gives up less sea, 3 ft, but W 10–20 fills in by afternoon with 10 kn and gusts to 11 over the zone, so the window closes earlier.\n\nThe break is not in the triangle. All three corners run warm and flat — west 70.8, south point 71.1, east 71.3 today, with Friday nearly identical. Nothing near the red isotherm, let alone the black.\n\nThe coolest water on the chart is Santa Rosa Flats at 68.6 today, just outside the band and worth the 40 nm if you want a real edge. Start the west corner south of Santa Cruz on 70.8, then push northwest. Osborn at 71.5 and San Nicolas at 70.4 are not worth the run.",
+  "model": "claude-opus-5"
 }
