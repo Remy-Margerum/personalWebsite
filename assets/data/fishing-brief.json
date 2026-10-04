@@ -1,8 +1,8 @@
 {
-  "generated": "2026-10-03T16:42:30.791Z",
-  "window": "Sat 10/3–Sun 10/4",
+  "generated": "2026-10-04T17:01:52.867Z",
+  "window": "Sun 10/4–Mon 10/5",
   "target": "bluefin",
-  "headline": "No break on the chart: foggy Saturday is the better bluefin day",
-  "body": "No advisories are posted, but fog is the real hazard: areas of dense fog with visibility a mile or less across the outer waters this morning, patchy dense fog in the channel after midnight, and patchy fog again Sunday morning. Run slow and keep the radar on. Today the channel is light with 2 ft seas, 2.8 ft in the triangle, 6 kn WNW by noon and gusts to 10 late. Sunday is a touch smoother at 2.6 ft, but the west breeze is up from dawn at 7 kn and 9 gusting 12 by afternoon, with Rachel's southerly swell filling in.\n\nThe honest call: the 64–68 band isn't anywhere on this chart. Triangle corners read 71.1 west, 71.8 at the south point and 72.1 east today, all warmer Sunday. Santa Rosa Flats is the coolest water anywhere at 70.7 and still three degrees over. If you go, go today, start the west corner south of Santa Cruz on that 71.1 and hunt bait. Don't burn 68 nm to Osborn — it's the warmest water out there at 72.6.",
-  "model": "claude-opus-5"
+  "headline": "Sunday's the clean window, but the break has slid off",
+  "body": "Patchy dense fog both mornings, visibility a mile or less — run slow out of the harbor. Sunday is the day to be out: channel seas 2 ft, the triangle running about 2.7, winds light NW 5 to 10 all day. Monday turns on you — the triangle goes 13 kn gusting 16 by afternoon, and the western and outer grounds fare worse: Santa Rosa building from 14 to 19 gusting 21, San Nicolas 12 gusting 14 early. If you fish, fish Sunday.\n\nThe trouble is temperature. The whole chart reads 71–73 °F — nothing on the cool side of the 64–68 band anywhere in the data. Inside the triangle the west corner off Santa Cruz is coolest at 72, the south point 72.5, the east off Anacapa 72.9; if you must start, work that west edge. But the break isn't in the triangle at all, and it hasn't set up on the farther grounds either — the coolest water, Santa Rosa Flats and San Nicolas at 71.2, still sits above the band. Not a textbook bluefin day.",
+  "model": "claude-opus-4-8"
 }
