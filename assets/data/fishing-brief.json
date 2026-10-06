@@ -1,8 +1,8 @@
 {
-  "generated": "2026-10-05T20:55:43.639Z",
-  "window": "Mon 10/5–Tue 10/6",
+  "generated": "2026-10-06T18:36:23.147Z",
+  "window": "Tue 10/6–Wed 10/7",
   "target": "bluefin",
-  "headline": "No 64–68 break in range — warm water, fog, closing window",
-  "body": "Lead with the fog: both mornings carry patchy dense fog, visibility a mile or less — run slow on radar and AIS until it lifts. Monday the Channel is easy, 2 ft inside and 2.6 at the triangle middle, west wind filling to 10 kn gusting 16 by mid-afternoon; the far grounds are workable, Osborn and San Nic near 3.3–3.6 ft, Santa Rosa Flats rougher at 13–19 kn WNW. Tuesday the Channel holds (2–3 ft) but the outer waters blow out — Santa Rosa 20–21 kn gusting 25 at 4.3 ft, San Nic gusting 21.\n\nThe bluefin call is a hard one: there's no 64–68 water anywhere on the chart. Every ground reads 70–73°F, well north of the red isotherm. The break has slid off north and west, beyond even Santa Rosa Flats, which at 70.9–71.4 is the coolest water in range. Inside the triangle the coolest corner is the west, south of Santa Cruz — 72.5 today, 71.1 Tuesday; east and south points sit near 73. Neither day is a true break day. If you go, Monday's the window; work the west corner, but temper the plan.",
-  "model": "claude-opus-4-8"
+  "headline": "No 64–68 break anywhere; Wednesday the softer bluefin look",
+  "body": "Fog is the safety item, not wind: patchy dense fog with visibility 1 NM or less offshore both mornings, so run radar and sound signals outbound. The east channel stays easy — 2 to 3 ft, NW 5–10 going W 10–15 this afternoon, and lighter again Wednesday. The triangle sits at 3.5 ft today with 13 kn gusting 15 at dawn, easing to 3.4 ft and near calm at first light Wednesday. West of there it's rough: Santa Rosa Flats holds 15–20 kn WNW and 4.5 ft both days, San Nicolas 4.5 ft, Osborn 4.1–4.3 ft.\n\nThe honest call is that neither day is a bluefin day on temperature. Nothing in the data touches the 64–68 band — the triangle corners read 71.2 west, 72.8 south and 73.0 east today, 71.2/73.1/73.6 Wednesday, and the outer grounds are warmer still at 71.0 to 73.4. The break has not slid to another ground; it simply isn't on this chart. If you go, take Wednesday's calm morning and work the west corner's 71.2 edge, the only cool water showing. The long runs aren't worth the fuel.",
+  "model": "claude-opus-5"
 }
