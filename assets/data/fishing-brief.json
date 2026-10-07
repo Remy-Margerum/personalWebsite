@@ -1,8 +1,8 @@
 {
-  "generated": "2026-10-06T18:36:23.147Z",
-  "window": "Tue 10/6–Wed 10/7",
+  "generated": "2026-10-07T19:05:08.696Z",
+  "window": "Wed 10/7–Thu 10/8",
   "target": "bluefin",
-  "headline": "No 64–68 break anywhere; Wednesday the softer bluefin look",
-  "body": "Fog is the safety item, not wind: patchy dense fog with visibility 1 NM or less offshore both mornings, so run radar and sound signals outbound. The east channel stays easy — 2 to 3 ft, NW 5–10 going W 10–15 this afternoon, and lighter again Wednesday. The triangle sits at 3.5 ft today with 13 kn gusting 15 at dawn, easing to 3.4 ft and near calm at first light Wednesday. West of there it's rough: Santa Rosa Flats holds 15–20 kn WNW and 4.5 ft both days, San Nicolas 4.5 ft, Osborn 4.1–4.3 ft.\n\nThe honest call is that neither day is a bluefin day on temperature. Nothing in the data touches the 64–68 band — the triangle corners read 71.2 west, 72.8 south and 73.0 east today, 71.2/73.1/73.6 Wednesday, and the outer grounds are warmer still at 71.0 to 73.4. The break has not slid to another ground; it simply isn't on this chart. If you go, take Wednesday's calm morning and work the west corner's 71.2 edge, the only cool water showing. The long runs aren't worth the fuel.",
-  "model": "claude-opus-5"
+  "headline": "Thursday the day — start the cool west corner, break's slid off",
+  "body": "Fog first: patchy dense fog both mornings, visibility a mile or less across the channel and outer waters — run radar and ease the throttle until it lifts. A small-craft advisory sits on the outer northwest waters from 3 PM through late tonight; that's well off our line, but it tells you wind builds late.\n\nWednesday inside the triangle is mild — channel seas 2–3 ft, west wind under 10, though the point stiffens to WNW 12 by mid-afternoon. Santa Rosa Flats and the outer banks run 4–6 ft and sloppier today. Thursday lays down nicer, the outer waters especially (W 5–10), triangle holding 2–3 ft.\n\nSo Thursday's the day. But the break has slid off — all three corners read warm: west 71.7, south 73.5, east 73.9, none near the 64–68 band. Start the west edge, south of Santa Cruz, on that coolest 71° water and grind on bait. Santa Rosa's no cooler and rougher; Osborn's the warmest. Stay in the triangle.",
+  "model": "claude-opus-4-8"
 }
