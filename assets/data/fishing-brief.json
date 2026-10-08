@@ -1,8 +1,8 @@
 {
-  "generated": "2026-10-07T19:05:08.696Z",
-  "window": "Wed 10/7–Thu 10/8",
+  "generated": "2026-10-08T19:00:31.414Z",
+  "window": "Thu 10/8–Fri 10/9",
   "target": "bluefin",
-  "headline": "Thursday the day — start the cool west corner, break's slid off",
-  "body": "Fog first: patchy dense fog both mornings, visibility a mile or less across the channel and outer waters — run radar and ease the throttle until it lifts. A small-craft advisory sits on the outer northwest waters from 3 PM through late tonight; that's well off our line, but it tells you wind builds late.\n\nWednesday inside the triangle is mild — channel seas 2–3 ft, west wind under 10, though the point stiffens to WNW 12 by mid-afternoon. Santa Rosa Flats and the outer banks run 4–6 ft and sloppier today. Thursday lays down nicer, the outer waters especially (W 5–10), triangle holding 2–3 ft.\n\nSo Thursday's the day. But the break has slid off — all three corners read warm: west 71.7, south 73.5, east 73.9, none near the 64–68 band. Start the west edge, south of Santa Cruz, on that coolest 71° water and grind on bait. Santa Rosa's no cooler and rougher; Osborn's the warmest. Stay in the triangle.",
-  "model": "claude-opus-4-8"
+  "headline": "Fog first, then Friday: no 64–68 break anywhere in reach",
+  "body": "Dense patchy fog is the real hazard both mornings — visibility 1 nm or less at the harbor today, patchy fog again Friday morning. Run radar and sound signals. No advisory is up, but the window is closing: Saturday night into Sunday builds to gale-force northwest and seas over 10 ft offshore, so Friday is the last clean day for a while.\n\nToday the triangle sees 10–12 kn west by midday on 3.5 ft. Friday is softer — 2–4 kn through the morning, 3.8 ft, not freshening until mid-afternoon. Friday it is, and go early.\n\nBe honest about the water: nothing in the data is anywhere near the 64–68 band. The triangle runs 72.6 west, 73.6 south, 74.1 east, and the far grounds are warmer still. The break has slid out of reach entirely. If you go, start the west corner south of Santa Cruz on the 72.6–73.3 and work the cool edge toward the south point, hunting bait and meter marks rather than temperature.\n\nSanta Rosa Flats is coolest at 71.1 but blows 12–15 kn on 5.9 ft Friday — not worth it. Osborn and San Nicolas are 70-plus-mile runs into 5 ft swell for warmer water. Skip both.",
+  "model": "claude-opus-5"
 }
