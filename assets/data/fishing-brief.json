@@ -1,8 +1,8 @@
 {
-  "generated": "2026-10-10T17:27:58.871Z",
-  "window": "Sat 10/10–Sun 10/11",
+  "generated": "2026-10-11T17:47:17.806Z",
+  "window": "Sun 10/11–Mon 10/12",
   "target": "bluefin",
-  "headline": "Break slid off to Santa Rosa; triangle still too warm to fish",
-  "body": "Safety first: a Small Craft Advisory runs through Monday evening for the waters out to Santa Cruz Island including Santa Rosa, and a second one kicks in at 6 PM tonight for the channel and the outer waters through Sunday evening. Isolated thunderstorms are possible south of Point Conception this afternoon. Today is the only workable window — triangle seas 4.5 ft with wind under 8 kn, harbor 3 ft. Sunday is done: 25–27 kn and 9.5 ft in the triangle, 32 kn gusting 37 and 11 ft on the Flats, 11 ft at Osborn and San Nicolas.\n\nThe bluefin call is honest and short. The 64–68 band is nowhere inside the highlighted zone — west corner 73.1, east 73.8, south point 73.0, all far warm of the red line. The break has slid west to Santa Rosa Flats at 69.5, cooling to 66.3 Sunday, and that ground is under advisory both days at 20 kn and 6.3 ft today. Osborn (73.6) and San Nicolas (72.8) are warm water and long runs. Neither day is a bluefin day.",
-  "model": "claude-opus-5"
+  "headline": "Monday's the window; break has slid off to Santa Rosa",
+  "body": "Today is a blowout — don't go. The triangle is running 8-plus feet with WNW gusting to 29 by mid-morning, and every zone from the channel to the outer waters is under a small craft advisory, Santa Rosa worse at 10-plus. Stay tied up.\n\nMonday eases. The channel advisory lifts this evening, and inside the triangle seas drop to the 4-to-5-foot range on W wind 11 to 15, a workable day out of the harbor.\n\nThe problem is temperature. All three corners sit 70.8 to 72.2 — well warm of the 68 red line, so the cool side of the break is not inside the triangle at all. The 64–68 water has slid west to Santa Rosa Flats, which read 66.1 today and only soften to 69.1 Monday. But Santa Rosa stays rough — 7-plus feet, W to 25, and its advisory holds through Monday afternoon — so that run isn't worth it.\n\nIf you go Monday, start the triangle's cool west corner south of Santa Cruz, the 71.6 edge nearest the break, and work west.",
+  "model": "claude-opus-4-8"
 }
