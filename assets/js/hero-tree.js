@@ -24,19 +24,40 @@
   let falling = [];
   let windT = 0;
 
+  // Hooks for hero-pigeon.js, which perches a bird in this tree: it reads the
+  // branch layout after each build and draws itself between the attached and
+  // the falling leaves every frame.
+  const api = window.heroTree = {
+    box: box,
+    ctx: ctx,
+    size: function () { return { W: W, H: H }; },
+    branches: function () { return branches; },
+    leaves: function () { return leaves; },
+    branchSway: branchSway,
+    dropLeaf: dropLeaf,
+    onBuild: null,
+    onDraw: null
+  };
+
   function resize() {
-    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Mobile browsers fire resize while scrolling (the URL bar shows and
+    // hides) — only regrow the tree when the hero itself changed size.
+    if (box.clientWidth === W && box.clientHeight === H && dpr === DPR) return;
+    DPR = dpr;
     W = box.clientWidth;
     H = box.clientHeight;
     canvas.width = W * DPR;
     canvas.height = H * DPR;
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     buildTree();
+    if (api.onBuild) api.onBuild();
     // Always paint one static frame immediately — rAF may be throttled or
     // suspended (hidden/background tab) and the tree should still appear.
     ctx.clearRect(0, 0, W, H);
     drawBranches();
     drawAttachedLeaves();
+    if (api.onDraw) api.onDraw(performance.now());
   }
 
   function rand(a, b) { return a + Math.random() * (b - a); }
@@ -122,11 +143,16 @@
     }
   }
 
+  // Horizontal wind offset of a branch's tip (its base stays put).
+  function branchSway(b) {
+    return b.depth > 4 ? Math.sin(windT * 0.7 + b.x2 * 0.01) * (b.depth - 4) * 0.6 : 0;
+  }
+
   function drawBranches() {
     ctx.lineCap = 'round';
     ctx.strokeStyle = BRANCH_COLOR;
     for (const b of branches) {
-      const swayAmt = b.depth > 4 ? Math.sin(windT * 0.7 + b.x2 * 0.01) * (b.depth - 4) * 0.6 : 0;
+      const swayAmt = branchSway(b);
       ctx.beginPath();
       ctx.lineWidth = b.width;
       ctx.moveTo(b.x1, b.y1);
@@ -156,9 +182,8 @@
     }
   }
 
-  function spawnFallingLeaf() {
-    if (!leaves.length) return;
-    const src = pick(leaves);
+  function spawnFallingLeaf(src) {
+    if (!src) return;
     falling.push({
       x: src.x, y: src.y,
       size: src.size,
@@ -190,6 +215,16 @@
     }
   }
 
+  // Knock loose the leaf nearest (x, y) — the pigeon landing or taking off.
+  function dropLeaf(x, y) {
+    let best = null, bestD = Infinity;
+    for (const l of leaves) {
+      const d = (l.x - x) * (l.x - x) + (l.y - y) * (l.y - y);
+      if (d < bestD) { bestD = d; best = l; }
+    }
+    if (best && bestD < 60 * 60) spawnFallingLeaf(best);
+  }
+
   let lastSpawn = 0;
   function frame(t) {
     windT = t / 1000;
@@ -197,10 +232,11 @@
 
     drawBranches();
     drawAttachedLeaves();
+    if (api.onDraw) api.onDraw(t);
 
     if (!reduceMotion) {
       if (t - lastSpawn > rand(600, 1800) && falling.length < 12) {
-        spawnFallingLeaf();
+        spawnFallingLeaf(pick(leaves));
         lastSpawn = t;
       }
       drawFallingLeaves();

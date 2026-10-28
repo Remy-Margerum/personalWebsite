@@ -23,6 +23,10 @@ lottery/                CA Lottery EV — offline stub (not in nav; app lives in
                         separate ca-scratchers repo, currently disabled)
 404.html                Not-found page (GitHub Pages picks this up automatically)
 assets/css/style.css    All styling; design tokens in :root
+assets/js/hero-tree.js  Home hero's generative tree (wind sway, falling leaves)
+assets/js/hero-pigeon.js Pigeon that flies in and perches in that tree; flies
+                        off when the pointer comes near and returns later
+                        (sprites + notes in assets/img/pigeon/)
 assets/js/pdf-viewer.js Pager logic for the document viewers
 assets/js/sailing.js    Sailing chart engine (projection, routes, wind field)
 assets/js/sailing-data.js SBYC marks/courses + shoreline geometry (generated)
