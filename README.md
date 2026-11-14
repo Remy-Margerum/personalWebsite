@@ -75,14 +75,14 @@ for i, page in enumerate(doc, 1):
 
 Then update `data-pages` on the matching `.pdf-viewer` if the page count changed.
 
-## Launch checklist (remaining)
+## DNS and HTTPS
 
 DNS for `remymargerum.com` is hosted at Cloudflare (domain registered at
 GoDaddy — leave the nameservers alone): `@` A records →
 185.199.108.153 / 185.199.109.153 / 185.199.110.153 / 185.199.111.153,
 `www` CNAME → `remy-margerum.github.io`, all set to "DNS only" (grey cloud)
-so GitHub can issue its certificate. Once the certificate is issued,
-enable "Enforce HTTPS" in the repo's Pages settings.
+so GitHub can issue its certificate. "Enforce HTTPS" is on in the repo's
+Pages settings: GitHub answers `http://` with a 301 to `https://`.
 
 ## Cycling ride data (Intervals.icu via GitHub Actions)
 
@@ -150,6 +150,30 @@ Any static server works, e.g.:
 ```
 npx serve .
 ```
+
+## Open work
+
+Open work is this repo's GitHub issues, shown on its project board — never a
+list in this README. Each issue is labelled by who answers it:
+
+| Label | Who answers |
+|---|---|
+| `remy: decide` | Remy decides (scope, a yes or a no) |
+| `remy: do` | Remy does it; a session cannot (a setting, a secret, an account) |
+| `build` | a session builds or fixes it in code |
+| `waiting: <party>` | someone outside, by lower-case name |
+
+plus the page it touches (`home`, `cycling`, `fishing`, `sailing`…) and
+`bug`, `docs` or `idea` where they fit.
+
+A session that leaves something open opens an issue (labelled by who it waits
+on, linking the file with the detail); a PR that finishes one says
+`Closes #<n>`. A session cannot reach the board itself: the board's auto-add
+workflow takes new issues.
+
+**This repo is public, and so are its issues.** An issue holds site and code
+work only — never a location, a route, a schedule, health details or anyone's
+contact details. Work like that goes to Remy directly, not into an issue.
 
 ## Data, licenses & attribution
 
